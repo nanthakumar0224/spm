@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Department entry form</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="static/css/style.css">
+</head>
+<body>
+    {% with msg=get_flashed_messages() %}
+    {% if msg %}
+    <script>
+        alert("{{msg[0]}}");
+    </script>
+    {% endif %}
+    {% endwith %}
+    <nav class="navbar">
+        <a href="#" class="navbar-brand">Admin Panel</a>
+        <div class="nav-menu">
+            <a href="{{url_for('admin_dashboard')}}" class="nav-item active">Home</a>
+
+            <div class="dropdown">
+                <a href="#" class="nav-item dropdown-toggle">Manage Dept</a>
+                <div class="dropdown-content">
+                    <a href="{{url_for('insert_dept')}}" class="dropdown-item">Add Dept</a>
+                    <a href="{{url_for('view_dept')}}" class="dropdown-item">View Dept</a>
+                </div>
+            </div>
+            
+            <div class="dropdown">
+                <a href="#" class="nav-item dropdown-toggle">Manage Staff</a>
+                <div class="dropdown-content">
+                    <a href="{{url_for('insert_staff')}}" class="dropdown-item">Add Staff</a>
+                    <a href="{{url_for('view_staff')}}" class="dropdown-item">View Staff</a>
+                </div>
+            </div>
+            
+            <div class="dropdown">
+                <a href="#" class="nav-item dropdown-toggle">Manage Subjects</a>
+                <div class="dropdown-content">
+                    <a href="{{url_for('insert_sub')}}" class="dropdown-item">Add Subject</a>
+                    <a href="{{url_for('view_subject')}}" class="dropdown-item">View Subjects</a>
+                </div>
+            </div>
+            
+            <div class="dropdown">
+                <a href="#" class="nav-item dropdown-toggle">Manage Attendance</a>
+                <div class="dropdown-content">
+                    <a href="class_entry_form.html" class="dropdown-item">Add Attendance</a>
+                    <a href="#" class="dropdown-item">View Attendance</a>
+                </div>
+            </div>
+            
+            <a href="report_generate_form.html" class="nav-item">Manage Reports</a>
+            <a href="{{url_for('login')}}"class="nav-item" id="logout-link">
+                <span>Logout</span>
+                <i class="fas fa-sign-out-alt"></i>
+            </a>
+        </div>
+    </nav>
+    
+    <div class="main-content">
+        <form class="form-container" action="/insert_dept" method="POST">
+            <div class="label">ADD DEPARTMENT DETAILS</div>
+
+            <div class="input-group">
+                <label for="dept-name">Department Name</label>
+                <input type="text" name="deptname" id="dept-name" placeholder="Enter Department name" requird>
+            </div>
+            
+            <div class="input-group">
+                <label for="dept-id">Department ID</label>
+                <input type="number" name="deptid" id="dept-id" placeholder="Enter Department ID" requird>
+            </div>
+            
+           
+            <div class="button-group">
+                <button type="submit" class="submit-btn">Add</button>
+                <button type="reset" class="clear-btn">Clear</button>
+            </div>
+        </form>
+    </div>
+
+    <footer class="footer">
+        <p class="copyright">© 2025 computerstudents@mspvl All Rights Reserved.</p>
+    </footer>
+</body>
+</html>

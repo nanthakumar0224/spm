@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Staff Dashboard</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="static/css/style.css">
+
+</head>
+<body>
+    {% with msg=get_flashed_messages() %}
+    {% if msg %}
+    <script>
+        alert("{{msg[0]}}");
+    </script>
+    {% endif %}
+    {% endwith %}
+
+    <nav class="navbar">
+        <a href="#" class="navbar-brand">Staff Panel</a>
+        <div class="nav-menu">
+            <a href="#" class="nav-item active">Home</a>
+
+            
+            
+            <div class="dropdown">
+                <a href="#" class="nav-item dropdown-toggle">Manage Attendance</a>
+                <div class="dropdown-content">
+                    <a href="class_entry_form.html" class="dropdown-item">Mark Attendance</a>
+                    <a href="#" class="dropdown-item">View Attendance</a>
+                </div>
+            </div>
+            
+            <a href="report_generate_form.html" class="nav-item">Manage Reports</a>
+            <a href="{{url_for('login_form')}}" class="nav-item" id="logout-link">
+                <span>Logout</span>
+                <i class="fas fa-sign-out-alt"></i>
+            </a>
+        </div>
+    </nav>
+
+    <div class="main-content">
+       <h1>Welcome to Staff Panel</h1>   
+    </div>
+
+    <footer class="footer">
+        <p class="copyright">© 2025 computerstudents@mspvl All Rights Reserved.</p>
+    </footer>
+</body>
+</html>

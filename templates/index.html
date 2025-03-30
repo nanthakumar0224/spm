@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Presence Manager</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="static/css/index.css">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Student Presence Manager</h1>
+        </div>
+
+        <div class="login-options">
+            <div class="login-card">
+                <div class="icon admin-icon">
+                    <i class="fas fa-user-shield"></i>
+                </div>
+                <h2>Admin</h2>
+                <a href="{{url_for('login')}}"><button class="btn btn-admin">Login</button></a>
+            </div>
+
+            <!---<div class="login-card">
+                <div class="icon hod-icon">
+                    <i class="fas fa-user-tie"></i>
+                </div>
+                <h2>HOD</h2>
+                <a href="{{url_for('login')}}"><button class="btn btn-hod">Login</button></a>
+            </div> -->
+
+            <div class="login-card">
+                <div class="icon staff-icon">
+                    <i class="fas fa-chalkboard-teacher"></i>
+                </div>
+                <h2>Staff</h2>
+                <a href="{{url_for('login')}}"><button class="btn btn-staff">Login</button></a>
+            </div>
+
+            <div class="login-card" >
+                <div class="icon student-icon">
+                    <i class="fas fa-user-graduate"></i>
+                </div>
+                <h2>Student</h2>
+                <a href="{{url_for('login')}}"><button class="btn btn-student">Login</button></a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const loginCards = document.querySelectorAll('.login-card');
+            
+            loginCards.forEach((card, index) => {
+                card.style.animationDelay = `${index * 0.2}s`;
+            });
+        });
+    </script>
+</body>
+</html>
