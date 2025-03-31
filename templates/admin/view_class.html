@@ -50,8 +50,8 @@
             <div class="dropdown">
                 <a href="#" class="nav-item dropdown-toggle">Manage Attendance</a>
                 <div class="dropdown-content">
-                    <a href="class_entry_form.html" class="dropdown-item">Add Attendance</a>
-                    <a href="#" class="dropdown-item">View Attendance</a>
+                    <a href="{{url_for('insert_class')}}" class="dropdown-item">Add Attendance</a>
+                    <a href="{{url_for('view_class')}}" class="dropdown-item">View Attendance</a>
                 </div>
             </div>
             
@@ -62,6 +62,7 @@
             </a>
         </div>
     </nav>
+
 
     <div class="main-content">
         <div class="table-container">
