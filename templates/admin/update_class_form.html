@@ -535,13 +535,13 @@
 
 
     <div class="main-content">
-        <form action="/update_class" method="POST" class="form-container">
+        <form action="/update_class" method="POST" class="form-container" enctype="multipart/form-data">
             <div class="label">UPDATE CLASS DETAILS</div>
             <div class="input-group">
                 <label for="class-name">Class Name</label>
                 <input type="text" id="class-name" placeholder="Enter Class name" name="classname" requird value="{{ classname }}">
             </div>
-
+            <input type="text" id="class-name" placeholder="Enter Class name" name="oldclassname" requird value="{{ classname }}" hidden>
             <div class="input-group">
                 <label for="class-id">Class Id</label>
                 <input type="number" id="class-id" placeholder="Enter Class Id" name="classid" readonly value="{{ classid }}">
@@ -587,6 +587,11 @@
                     </div>
                     {% endfor %}
                 </div>
+            </div>
+
+            <div class="input-group">
+                <label for="file">Upload your student details Excel file</label>
+                <input type="file" name="file" accept=".xlsx, .xls" class="file-upload" required>       
             </div>
             
             <div class="button-group">

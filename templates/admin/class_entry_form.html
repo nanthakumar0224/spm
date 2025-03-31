@@ -6,6 +6,8 @@
     <title>Class Entry form</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="static/css/style.css">
+
+
       
 </head>
 <body>
@@ -63,7 +65,7 @@
 
 
     <div class="main-content">
-        <form action="#" method="POST" class="form-container">
+        <form action="#" method="POST" class="form-container" enctype="multipart/form-data">
             <div class="label">CREATE CLASS (ATTENDANCE)</div>
             <div class="input-group">
                 <label for="class-name">Class Name</label>
@@ -117,7 +119,12 @@
                     {% endfor %}
                 </div>
             </div>
-    
+
+            <div class="input-group">
+                <label for="file">Upload your student details Excel file</label>
+                <input type="file" name="file" accept=".xlsx, .xls" class="file-upload" required>       
+            </div>
+
             <div class="button-group">
                 <button type="submit" class="submit-btn">ADD CLASS</button>
                 <button type="reset" class="clear-btn">Clear</button>

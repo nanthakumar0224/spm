@@ -415,20 +415,34 @@ def insert_class():
         dept = request.form.get('dept')
         year = request.form.get('year')
         semester = request.form.get('sem')
-        selected_staffsid = request.form.getlist('staffsid')  # This gets all selected staff IDs
+        file = request.files.get('file')
+        selected_staffsid = request.form.getlist('staffsid')
         
-        if not classid or not classname or not dept or not year or not semester or not selected_staffsid :
-            flash("All subject values are required", "danger")
+        if not all([classid, classname, dept, year, semester, selected_staffsid, file]):
+            flash("All fields are required", "danger")
             return redirect(url_for('insert_class'))
             
         try:
+            # Insert class info
             cur.execute("""
                 INSERT INTO classes_tb (classid, classname, dept, year, sem, staffsid) 
                 VALUES (?, ?, ?, ?, ?, ?)
             """, (classid, classname, dept, year, semester, ",".join(selected_staffsid)))
             
+            create_table_query = f"CREATE TABLE IF NOT EXISTS {classname} (slno INTEGER, rollno INTEGER,name VARCHAR(50),present INTEGER, absent INTEGER,date VARCHAR(50),day VARCHAR(50))"
+            cur.execute(create_table_query)
+        
+            df = pd.read_excel(file)
+            df = df[['rollno','name','email']] 
+            df['dept'] = dept
+            df['year'] = year
+            df['classid'] = classid
+            df['classname'] = classname
+    
+            df.to_sql("students_tb", con, if_exists='append', index=False)
             con.commit()
-            flash("Class Added Successfully..!!", "success")
+            
+            flash("Class Added Successfully!", "success")
             
         except sqlite3.IntegrityError:
             flash("Class Name or Id already exists!", "danger") 
@@ -439,7 +453,6 @@ def insert_class():
             return redirect(url_for('insert_class'))
 
     else:
-        
         cur.execute('SELECT deptname FROM dept_tb')
         departments = [row[0] for row in cur.fetchall()]
     
@@ -494,11 +507,13 @@ def update_class_form(classid,classname,dept,year,sem):
 def update_class():
     classid = request.form.get('classid')
     new_classname = request.form.get('classname')
+    old_classname  = request.form.get('oldclassname')
     new_dept = request.form.get('dept')
     new_year   = request.form.get('year')
     new_sem    = request.form.get('sem')
     selected_staffsid = request.form.getlist('staffsid')
     staffs_id = ",".join(selected_staffsid)
+    file = request.files.get('file')
     
     if not classid or not new_classname or not new_dept  or not new_year or not new_sem or not staffs_id:
         flash("All values are required","danger")
@@ -507,8 +522,23 @@ def update_class():
         con = sqlite3.connect('spm_db.db')
         cur = con.cursor()
         cur.execute("UPDATE classes_tb SET classname = ?,dept = ?,year=?, sem=?,staffsid =? WHERE classid =?", (new_classname, new_dept,new_year,new_sem,staffs_id,int(classid)))
+
+        cur.execute("DELETE FROM students_tb WHERE classid=?", (classid,))
+        
+        query = f"ALTER TABLE '{old_classname}' RENAME TO '{new_classname}'"
+        cur.execute(query)
         con.commit()
-        flash("Class Updated successfully!", "success")
+        
+        df = pd.read_excel(file)
+        df = df[['rollno','name','email']] 
+        df['dept'] = new_dept
+        df['year'] = new_year
+        df['classid'] = classid
+        df['classname'] = new_classname
+    
+        df.to_sql("students_tb", con, if_exists='append', index=False)
+        con.commit()
+        flash("Class Updated success...!!","success")
     except Exception as e:
         flash(f"Error Updating Class: {str(e)}", "danger")
     finally:
@@ -517,6 +547,64 @@ def update_class():
 
 
 
+
+
+@app.route("/class_schedule", methods=["POST", "GET"])
+def class_schedule():
+    con = sqlite3.connect('spm_db.db')
+    cur = con.cursor()
+    
+    if request.method == "POST":
+        try:
+            # Process each day's schedule
+            days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday']
+            for day in days:
+                for period in range(1, 9):
+                    subject = request.form.get(f"{day}_p{period}_subject")
+                    staff = request.form.get(f"{day}_p{period}_staff")
+                    
+                    if subject and staff:
+                        cur.execute("""
+                            INSERT OR REPLACE INTO timetable_tb 
+                            (day, period, subject, staff) 
+                            VALUES (?, ?, ?, ?)
+                        """, (day, period, subject, staff))
+            
+            con.commit()
+            flash("Class schedule saved successfully!", "success")
+        except Exception as e:
+            con.rollback()
+            flash(f"Error saving schedule: {str(e)}", "danger")
+        finally:
+            con.close()
+            return redirect(url_for('class_schedule'))
+    
+    else:
+        # GET request - show form
+        try:
+            # Get staff names (assuming username is in column 0)
+            cur.execute("SELECT username FROM users_tb")
+            staffs_names = [row[0] for row in cur.fetchall()]
+            
+            # Get subject names (assuming subjectname is in column 0)
+            cur.execute('SELECT subjectname FROM subjects_tb')
+            subjectnames = [row[0] for row in cur.fetchall()]
+            
+            return render_template("admin/class_schedule_form.html",
+                                staffs_names=staffs_names,
+                                subjectnames=subjectnames)
+        except Exception as e:
+            flash(f"Error loading form: {str(e)}", "danger")
+            return redirect(url_for('admin_dashboard'))
+        finally:
+            con.close()
+    
+    
+        
+        
+        
+    
+    
 
 #----------------------------------end-admin-processes-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------#
 
@@ -541,3 +629,28 @@ def update_class():
 
 if __name__ == '__main__':
     app.run(debug=True)
+    
+    
+    
+    
+
+'''def init_db():
+   init_db()
+    con = sqlite3.connect('spm_db.db')
+    cur = con.cursor()
+    try:
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS timetable_tb (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                day TEXT NOT NULL,
+                period INTEGER NOT NULL,
+                subject TEXT NOT NULL,
+                staff TEXT NOT NULL,
+                UNIQUE(day, period)
+            )
+        """)
+        con.commit()
+    finally:
+        con.close()
+
+'''
