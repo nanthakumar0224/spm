@@ -17,8 +17,11 @@ def admin_dashboard():
     con = sqlite3.connect("spm_db.db")
     cur = con.cursor()
     cur.execute("SELECT * FROM users_tb")
-    row_count = len(cur.fetchall()) 
-    return render_template("admin/admin_panel.html",total_staff=row_count)
+    total_staff = len(cur.fetchall()) 
+    
+    cur.execute("SELECT * FROM classes_tb")
+    total_classes = len(cur.fetchall()) 
+    return render_template("admin/admin_panel.html",total_staff=total_staff,total_classes=total_classes)
 
 #---------------------------------------------------------------------------------------------------------------#
 
@@ -44,8 +47,11 @@ def login():
                 con = sqlite3.connect("spm_db.db")
                 cur = con.cursor()
                 cur.execute("SELECT * FROM users_tb")
-                row_count = len(cur.fetchall()) 
-                return render_template("admin/admin_panel.html",total_staff=row_count)
+                total_staff = len(cur.fetchall()) 
+    
+                cur.execute("SELECT * FROM classes_tb")
+                total_classes = len(cur.fetchall()) 
+                return render_template("admin/admin_panel.html",total_staff=total_staff,total_classes=total_classes)
             else:
                 cur.execute("SELECT * FROM users_tb WHERE username=? AND pass=? and userid=?", (username, password,userid))
                 data = cur.fetchone()
@@ -296,14 +302,14 @@ def insert_sub():
         dept = request.form.get('dept')
         year = request.form.get('year')
         semester = request.form.get('sem')
-        selected_staffsid = request.form.getlist('staffsid')  # This gets all selected staff IDs
+        selected_staffsid = request.form.getlist('staffsid')  
         
         if not subjectid or not subjectname or not dept or not year or not semester or not selected_staffsid :
             flash("All subject values are required", "danger")
             return redirect(url_for('insert_sub'))
             
         try:
-            # First insert the subject
+            
             cur.execute("""
                 INSERT INTO subjects_tb (subjectid, subjectname, dept, year, sem, staffsid) 
                 VALUES (?, ?, ?, ?, ?, ?)
@@ -423,7 +429,6 @@ def insert_class():
             return redirect(url_for('insert_class'))
             
         try:
-            # Insert class info
             cur.execute("""
                 INSERT INTO classes_tb (classid, classname, dept, year, sem, staffsid) 
                 VALUES (?, ?, ?, ?, ?, ?)
@@ -473,12 +478,15 @@ def view_class():
 
 
 #delete class
-@app.route('/delete_class/<int:classid>')
-def delete_class(classid):
+@app.route('/delete_class/<int:classid>/<string:classname>')
+def delete_class(classid,classname):
     con = sqlite3.connect('spm_db.db')
-    cursor = con.cursor()
+    cur = con.cursor()
     try:
-        cursor.execute("DELETE FROM classes_tb WHERE classid = ?", (classid,))
+        cur.execute("DELETE FROM classes_tb WHERE classid = ?", (classid,))
+        query = f"DROP TABLE {classname}"
+        cur.execute(query)
+        cur.execute("DELETE FROM students_tb WHERE classid=?", (classid,))
         con.commit()
         flash("Class deleted successfully!", "success")
     except Exception as e:
@@ -556,7 +564,6 @@ def class_schedule():
     
     if request.method == "POST":
         try:
-            # Process each day's schedule
             days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday']
             for day in days:
                 for period in range(1, 9):
@@ -580,13 +587,10 @@ def class_schedule():
             return redirect(url_for('class_schedule'))
     
     else:
-        # GET request - show form
         try:
-            # Get staff names (assuming username is in column 0)
             cur.execute("SELECT username FROM users_tb")
             staffs_names = [row[0] for row in cur.fetchall()]
             
-            # Get subject names (assuming subjectname is in column 0)
             cur.execute('SELECT subjectname FROM subjects_tb')
             subjectnames = [row[0] for row in cur.fetchall()]
             
@@ -602,17 +606,9 @@ def class_schedule():
     
         
         
-        
-    
     
 
 #----------------------------------end-admin-processes-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------#
-
-
-
-
-
-
 
 
 
