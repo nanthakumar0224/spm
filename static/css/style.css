@@ -336,7 +336,8 @@ body {
 }
 
 .btn-update, 
-.btn-delete {
+.btn-delete,
+.btn-merge {
     padding: 8px 12px;
     border-radius: 4px;
     font-size: 0.85rem;
@@ -368,8 +369,19 @@ body {
 .btn-delete:hover {
     background-color: #c82333;
     transform: translateY(-1px);
-}
 
+
+}
+.btn-merge {
+    background-color: #2196F3; 
+    border: 1px solid #0b7dda;
+    color:white;
+}
+.btn-merge:hover {
+    background-color: #0b7dda;
+    transform: translateY(-1px);
+    
+}
 /* Responsive adjustments */
 @media (max-width: 768px) {
     .table-container {
@@ -388,11 +400,14 @@ body {
     }
     
     .btn-update, 
-    .btn-delete {
+    .btn-delete,
+    .btn-merge {
         padding: 6px 10px;
         font-size: 0.8rem;
         justify-content: center;
     }
+    
+
 }
 
 /* Container styling */

@@ -67,14 +67,14 @@
             <div class="label">ADD SUBJECT DETAILS</div>
             <div class="input-group">
                 <label for="subject-name">Subject Name</label>
-                <input type="text" id="subject-name" placeholder="Enter subject name" name="subname" requird>
+                <input type="text" id="subject-name" placeholder="Enter subject name" name="subname" required>
             </div>
-
+    
             <div class="input-group">
                 <label for="subject-id">Subject Id</label>
-                <input type="number" id="subject-id" placeholder="Enter subject Id" name="subid" requird>
+                <input type="number" id="subject-id" placeholder="Enter subject Id" name="subid" required>
             </div>
-
+    
             <div class="input-group">
                 <label for="dept">Department</label>
                 <select id="dept" name="dept">
@@ -83,7 +83,7 @@
                     {% endfor %}
                 </select>
             </div>
-
+    
             <div class="input-group">
                 <label for="year">Year</label>
                 <select id="year" name="year">
@@ -92,7 +92,7 @@
                     <option>III</option>
                 </select>
             </div>
-
+    
             <div class="input-group">
                 <label for="sem">Semester</label>
                 <select id="sem" name="sem">
@@ -103,23 +103,26 @@
                     <option>5</option>
                     <option>6</option>
                 </select>
-            </div>            
-
-                
+            </div>
+    
+        
             <div class="input-group">
-                <label>Staff</label>
-                <div class="input-group">
-                    <input type="checkbox" name="staffs" value="1"> John Doe<br>
-                    <input type="checkbox" name="staffs" value="2"> Jane Smith<br>
-                    <input type="checkbox" name="staffs" value="3"> Mike Johnson<br>
+                <label>Select Staffs:</label>
+                <div class="staff-checkboxes">
+                    {% for staff in staff_list %}
+                    <div class="staff-option">
+                        <input type="checkbox" id="staff_{{ staff[0] }}" name="staffsid" value="{{ staff[0] }}">
+                        <label for="staff_{{ staff[0] }}">{{ staff[1] }} (ID: {{ staff[0] }})</label>
+                    </div>
+                    {% endfor %}
                 </div>
             </div>
-
+    
             <div class="button-group">
                 <button type="submit" class="submit-btn">ADD SUBJECT</button>
                 <button type="reset" class="clear-btn">Clear</button>
             </div>
-        </div>
+        </form>
     </div>
 
     <footer class="footer">

@@ -289,22 +289,28 @@ def updat_staff():
 def insert_sub():
     con = sqlite3.connect("spm_db.db")
     cur = con.cursor()    
+    
     if request.method == "POST":
-        subjectid    = request.form.get('subid')
+        subjectid = request.form.get('subid')
         subjectname = request.form.get('subname')
         dept = request.form.get('dept')
         year = request.form.get('year')
         semester = request.form.get('sem')
-        selected_staffs = request.form.getlist('staffs')
-        staffs_str = ",".join(selected_staffs)
-        if not subjectid or not subjectname or not dept or not year or not semester:
-            flash("All values are required","danger")
+        selected_staffsid = request.form.getlist('staffsid')  # This gets all selected staff IDs
+        
+        if not subjectid or not subjectname or not dept or not year or not semester or not selected_staffsid :
+            flash("All subject values are required", "danger")
             return redirect(url_for('insert_sub'))
             
         try:
-            cur.execute("INSERT INTO subjects_tb (subjectid,subjectname, dept,year,sem,staffs) VALUES (?, ?,?, ?,?, ?)",(subjectid,subjectname, dept, year,semester,staffs_str))
+            # First insert the subject
+            cur.execute("""
+                INSERT INTO subjects_tb (subjectid, subjectname, dept, year, sem, staffsid) 
+                VALUES (?, ?, ?, ?, ?, ?)
+            """, (subjectid, subjectname, dept, year, semester, ",".join(selected_staffsid)))
+            
             con.commit()
-            flash("Subject Added Successfully!", "success")
+            flash("Subject Added Successfully..!!", "success")
             
         except sqlite3.IntegrityError:
             flash("Subject Name or Id already exists!", "danger") 
@@ -315,10 +321,13 @@ def insert_sub():
             return redirect(url_for('insert_sub'))
     else:
         cur.execute('SELECT deptname FROM dept_tb')
-        data = cur.fetchall()
-        departments = [row[0] for row in data] 
-        con.close
-        return render_template("admin/subject_entry_form.html",departments=departments)
+        departments = [row[0] for row in cur.fetchall()]
+   
+        cur.execute('SELECT userid, username FROM users_tb')
+        staff_list = cur.fetchall()
+        
+        con.close()
+        return render_template("admin/subject_entry_form.html", departments=departments,staff_list=staff_list)
         
 
 #view subject
@@ -355,8 +364,12 @@ def update_subject_form(subjectid,subjectname,dept,year,sem):
     cur.execute('SELECT deptname FROM dept_tb')
     data = cur.fetchall()
     departments = [row[0] for row in data] 
+
+   
+    cur.execute('SELECT userid, username FROM users_tb')
+    staff_list = cur.fetchall()
     con.close()
-    return render_template("admin/update_subject_form.html",subjectid = subjectid,subjectname=subjectname,dept=dept,year=year,sem=sem,departments=departments)
+    return render_template("admin/update_subject_form.html",subjectid = subjectid,subjectname=subjectname,dept=dept,year=year,sem=sem,departments=departments,staff_list=staff_list)
 
 
 @app.route('/update_subject', methods=['GET', 'POST'])
@@ -366,13 +379,16 @@ def update_subject():
     new_dept = request.form.get('dept')
     new_year   = request.form.get('year')
     new_sem    = request.form.get('sem')
-    if not subjectid or not new_subjectname or not new_dept  or not new_year or not new_sem:
+    selected_staffsid = request.form.getlist('staffsid')
+    staffs_id = ",".join(selected_staffsid)
+    
+    if not subjectid or not new_subjectname or not new_dept  or not new_year or not new_sem or not staffs_id:
         flash("All values are required","danger")
         return redirect(url_for('view_subject'))  
     try:
         con = sqlite3.connect('spm_db.db')
         cur = con.cursor()
-        cur.execute("UPDATE subjects_tb SET subjectname = ?,dept = ?,year=?, sem=? WHERE subjectid =?", (new_subjectname, new_dept,new_year,new_sem,int(subjectid)))
+        cur.execute("UPDATE subjects_tb SET subjectname = ?,dept = ?,year=?, sem=?,staffsid =? WHERE subjectid =?", (new_subjectname, new_dept,new_year,new_sem,staffs_id,int(subjectid)))
         con.commit()
         flash("Subject Updated successfully!", "success")
     except Exception as e:
@@ -387,12 +403,117 @@ def update_subject():
 
 
 #-------------------------------------------create-class-attendance------------------------------------------------------------------#
+
 #create attendance
+@app.route("/insert_class", methods=["GET", "POST"])
+def insert_class():
+    con = sqlite3.connect('spm_db.db')
+    cur = con.cursor()
+    if request.method == "POST":
+        classid = request.form.get('classid')
+        classname = request.form.get('classname')
+        dept = request.form.get('dept')
+        year = request.form.get('year')
+        semester = request.form.get('sem')
+        selected_staffsid = request.form.getlist('staffsid')  # This gets all selected staff IDs
+        
+        if not classid or not classname or not dept or not year or not semester or not selected_staffsid :
+            flash("All subject values are required", "danger")
+            return redirect(url_for('insert_class'))
+            
+        try:
+            cur.execute("""
+                INSERT INTO classes_tb (classid, classname, dept, year, sem, staffsid) 
+                VALUES (?, ?, ?, ?, ?, ?)
+            """, (classid, classname, dept, year, semester, ",".join(selected_staffsid)))
+            
+            con.commit()
+            flash("Class Added Successfully..!!", "success")
+            
+        except sqlite3.IntegrityError:
+            flash("Class Name or Id already exists!", "danger") 
+        except Exception as e:
+            flash(f"Error in Insertion: {str(e)}", "danger")
+        finally:
+            con.close()
+            return redirect(url_for('insert_class'))
 
-@app.route("/create_class_form")
-def create_class_form():
-    return render_template("admin/class_entry_form.html")
+    else:
+        
+        cur.execute('SELECT deptname FROM dept_tb')
+        departments = [row[0] for row in cur.fetchall()]
+    
+        cur.execute('SELECT userid, username FROM users_tb')
+        staff_list = cur.fetchall()
+        con.close()
+        return render_template("admin/class_entry_form.html", departments=departments,staff_list=staff_list)
+    
+#view subject
+@app.route('/view_class')
+def view_class():
+    con = sqlite3.connect('spm_db.db')
+    cur = con.cursor()
+    cur.execute("SELECT * FROM classes_tb")
+    data = cur.fetchall()
+    con.close()
+    return render_template('admin/view_class.html', data = data)
 
+
+#delete class
+@app.route('/delete_class/<int:classid>')
+def delete_class(classid):
+    con = sqlite3.connect('spm_db.db')
+    cursor = con.cursor()
+    try:
+        cursor.execute("DELETE FROM classes_tb WHERE classid = ?", (classid,))
+        con.commit()
+        flash("Class deleted successfully!", "success")
+    except Exception as e:
+        flash(f"Error deleting Class: {str(e)}", "danger")
+    finally:
+        con.close()
+        return redirect(url_for('view_class'))
+
+#update class
+@app.route("/update_class_form/<int:classid>/<string:classname>/<string:dept>/<string:year>/<string:sem>",methods=["POST","GET"])
+def update_class_form(classid,classname,dept,year,sem):
+    con = sqlite3.connect("spm_db.db")
+    cur = con.cursor()
+    cur.execute('SELECT deptname FROM dept_tb')
+    data = cur.fetchall()
+    departments = [row[0] for row in data] 
+
+   
+    cur.execute('SELECT userid, username FROM users_tb')
+    staff_list = cur.fetchall()
+    con.close()
+    return render_template("admin/update_class_form.html",classid = classid,classname=classname,dept=dept,year=year,sem=sem,departments=departments,staff_list=staff_list)
+
+
+@app.route('/update_class', methods=['GET', 'POST'])
+def update_class():
+    classid = request.form.get('classid')
+    new_classname = request.form.get('classname')
+    new_dept = request.form.get('dept')
+    new_year   = request.form.get('year')
+    new_sem    = request.form.get('sem')
+    selected_staffsid = request.form.getlist('staffsid')
+    staffs_id = ",".join(selected_staffsid)
+    
+    if not classid or not new_classname or not new_dept  or not new_year or not new_sem or not staffs_id:
+        flash("All values are required","danger")
+        return redirect(url_for('view_class'))  
+    try:
+        con = sqlite3.connect('spm_db.db')
+        cur = con.cursor()
+        cur.execute("UPDATE classes_tb SET classname = ?,dept = ?,year=?, sem=?,staffsid =? WHERE classid =?", (new_classname, new_dept,new_year,new_sem,staffs_id,int(classid)))
+        con.commit()
+        flash("Class Updated successfully!", "success")
+    except Exception as e:
+        flash(f"Error Updating Class: {str(e)}", "danger")
+    finally:
+        con.close()
+    return redirect(url_for('view_class'))    
 
 
 

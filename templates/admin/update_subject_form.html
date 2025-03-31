@@ -404,7 +404,78 @@
             }
         }
         
-        
+        /* Container styling */
+.input-group {
+    margin-bottom: 1.5rem;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  }
+  
+  .input-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+    color: #333;
+  }
+  
+  /* Checkbox group styling */
+  .input-group .input-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    padding: 0.75rem;
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    border: 1px solid #dee2e6;
+  }
+  
+  /* Checkbox styling */
+  .input-group input[type="checkbox"] {
+    /* Hide default checkbox */
+    appearance: none;
+    -webkit-appearance: none;
+    width: 18px;
+    height: 18px;
+    border: 2px solid #6c757d;
+    border-radius: 4px;
+    margin-right: 10px;
+    position: relative;
+    top: 3px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  
+  .input-group input[type="checkbox"]:checked {
+    background-color: #0d6efd;
+    border-color: #0d6efd;
+  }
+  
+  /* Custom checkmark */
+  .input-group input[type="checkbox"]:checked::after {
+    content: "✓";
+    position: absolute;
+    color: white;
+    font-size: 12px;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+  }
+  
+  /* Label text styling */
+  .input-group input[type="checkbox"] + label {
+    cursor: pointer;
+    user-select: none;
+  }
+  
+  /* Hover effects */
+  .input-group input[type="checkbox"]:hover {
+    border-color: #0d6efd;
+  }
+  
+  /* Focus state */
+  .input-group input[type="checkbox"]:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.25);
+  }
 
     </style>
       
@@ -506,6 +577,18 @@
                 </select>
             </div>            
 
+            <div class="input-group">
+                <label>Select Staffs:</label>
+                <div class="staff-checkboxes">
+                    {% for staff in staff_list %}
+                    <div class="staff-option">
+                        <input type="checkbox" id="staff_{{ staff[0] }}" name="staffsid" value="{{ staff[0] }}">
+                        <label for="staff_{{ staff[0] }}">{{ staff[1] }} (ID: {{ staff[0] }})</label>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            
             <div class="button-group">
                 <button type="submit" class="submit-btn">UPDATE SUBJECT</button>
                 <button type="reset" class="clear-btn">Clear</button>
