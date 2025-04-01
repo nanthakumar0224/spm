@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Staff Dashboard</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="static/css/style.css">
+    <style>
+        /* Additional styles for the class table */
+        .class-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        
+        .class-table th, .class-table td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        .class-table th {
+            background-color: #3498db;
+            color: white;
+            font-weight: 600;
+        }
+        
+        .class-table tr:nth-child(even) {
+            background-color: #f8f9fa;
+        }
+        
+        .class-table tr:hover {
+            background-color: #f1f8fe;
+        }
+        
+        .attendance-link {
+            color: #2ecc71;
+            text-decoration: none;
+            font-size: 1.1rem;
+            transition: color 0.3s;
+        }
+        
+        .attendance-link:hover {
+            color: #27ae60;
+        }
+        
+     
+        
+        .main-content h1 {
+            color: #2c3e50;
+            font-size: 2rem;
+            margin-bottom: 1.5rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid #3498db;
+        }
+    </style>
+</head>
+<body>
+    {% with msg=get_flashed_messages() %}
+    {% if msg %}
+    <script>
+        alert("{{msg[0]}}");
+    </script>
+    {% endif %}
+    {% endwith %}
+
+    <nav class="navbar">
+        <a href="#" class="navbar-brand">Staff Panel</a>
+        <div class="nav-menu">
+            <a href="#" class="nav-item active">Home</a>
+            
+            <div class="dropdown">
+                <a href="#" class="nav-item dropdown-toggle">Manage Attendance</a>
+                <div class="dropdown-content">
+                    <a href="{{url_for('mark_attendance')}}" class="dropdown-item">Mark Attendance</a>
+                    <a href="{{url_for('view_all_attendance')}}" class="dropdown-item">View Attendance</a>
+                </div>
+            </div>
+            
+            <a href="report_generate_form.html" class="nav-item">Manage Reports</a>
+            <a href="{{url_for('login')}}" class="nav-item" id="logout-link">
+                <span>Logout</span>
+                <i class="fas fa-sign-out-alt"></i>
+            </a>
+        </div>
+    </nav>
+
+    <div class="main-content">
+        <h1>Your Classes</h1>
+        <table class="class-table">
+            <thead>
+                <tr>
+                    <th>Class Name</th>
+                    <th>Class ID</th>
+                    <th>Staff IDs</th>
+                    <th>Mark Attendance</th>
+                </tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                    <td>1</td>
+                    <td>class1</td>
+                    <td>3</td>
+                    
+                    <td>
+                        <a href="" class="attendance-link">
+                            <i class="fas fa-calendar-check"></i> Mark Attendance
+                        </a>
+                    </td>
+                </tr>
+             
+            </tbody>
+        </table>
+    </div>
+
+    <footer class="footer">
+        <p class="copyright">© 2025 computerstudents@mspvl All Rights Reserved.</p>
+    </footer>
+</body>
+</html>

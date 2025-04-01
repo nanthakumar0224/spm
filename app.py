@@ -43,7 +43,7 @@ def login():
             if username == "admin" and password == "123" and userid =="1":
                 session['userid'] = 1
                 session['username'] = "admin"
-                flash("Login Successfull..!!","success")
+                flash("Login Successful..!!","success")
                 con = sqlite3.connect("spm_db.db")
                 cur = con.cursor()
                 cur.execute("SELECT * FROM users_tb")
@@ -59,14 +59,14 @@ def login():
                 if data:
                         session['userid'] = int(userid)
                         session['username'] = username
-                        flash("Login Successfull..!!","success")
+                        flash("Login Successful..!!","success")
                         return render_template("staff/staff_panel.html") 
                 else:
                     flash("Login Failed..!!","danger")
                     return redirect(url_for('login'))
                 
         except Exception as e:
-            flash(f"Error in Insertion: {str(e)}", "danger")
+            flash(f"Error in Login: {str(e)}", "danger")
         finally:
             if con:
                 con.close()
@@ -620,6 +620,24 @@ def class_schedule():
 
 #--------------------------------------staff-processes-------------------------------------------------------------------------------------------------#
 
+
+
+@app.route('/mark_attendance')
+def mark_attendance():
+    return render_template('staff/attendance_sheet.html')
+
+@app.route('/view_all_attendance')
+def view_all_attendance():
+    return render_template('staff/view_attendance.html')
+    
+        
+        
+      
+   
+
+
+  
+   
 
 #---------------------------------------end-staff-processes-----------------------------------------------------------------------------------------------------#
 
