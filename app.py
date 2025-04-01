@@ -54,13 +54,13 @@ def login():
                 return render_template("admin/admin_panel.html",total_staff=total_staff,total_classes=total_classes)
             else:
                 cur.execute("SELECT * FROM users_tb WHERE username=? AND pass=? and userid=?", (username, password,userid))
-                data = cur.fetchone()
+                data = cur.fetchall()
                 
                 if data:
                         session['userid'] = int(userid)
                         session['username'] = username
                         flash("Login Successfull..!!","success")
-                        return render_template("/staff/staff_panel.html") 
+                        return render_template("staff/staff_panel.html") 
                 else:
                     flash("Login Failed..!!","danger")
                     return redirect(url_for('login'))
