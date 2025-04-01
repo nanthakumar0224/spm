@@ -95,7 +95,7 @@
                             <a href="{{ url_for('delete_class', classid=row[0],classname=row[1]) }}" class="btn-delete" onclick="return confirm('Are you sure you want to delete this department?')">
                                 <i class="fas fa-trash-alt"></i> Delete
                             </a>
-                            <a href="{{ url_for('class_schedule') }}" class="btn-merge" title="Merge Timetable">
+                            <a href="{{ url_for('class_schedule',classname=row[1]) }}" class="btn-merge" title="Merge Timetable">
                                 <i class="fas fa-calendar-alt"></i> Class Schedule
                             </a>
                         </td>

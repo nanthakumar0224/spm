@@ -74,7 +74,6 @@
             <div class="dropdown">
                 <a href="#" class="nav-item dropdown-toggle">Manage Attendance</a>
                 <div class="dropdown-content">
-                    <a href="{{url_for('mark_attendance')}}" class="dropdown-item">Mark Attendance</a>
                     <a href="{{url_for('view_all_attendance')}}" class="dropdown-item">View Attendance</a>
                 </div>
             </div>
@@ -99,19 +98,19 @@
                 </tr>
             </thead>
             <tbody>
-              
+                {% for class in classes %}
                 <tr>
-                    <td>1</td>
-                    <td>class1</td>
-                    <td>3</td>
-                    
+                    <td>{{ class.classname }}</td>
+                    <td>{{ class.classid }}</td>
+                    <td>{{ class.staffsid }}</td>
                     <td>
-                        <a href="" class="attendance-link">
+                        <a href="{{ url_for('mark_attendance', classid=class.classid) }}" 
+                           class="btn btn-primary attendance-link">
                             <i class="fas fa-calendar-check"></i> Mark Attendance
                         </a>
                     </td>
                 </tr>
-             
+                {% endfor %}
             </tbody>
         </table>
     </div>

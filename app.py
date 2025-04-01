@@ -436,7 +436,19 @@ def insert_class():
             
             create_table_query = f"CREATE TABLE IF NOT EXISTS {classname} (slno INTEGER, rollno INTEGER,name VARCHAR(50),present INTEGER, absent INTEGER,date VARCHAR(50),day VARCHAR(50))"
             cur.execute(create_table_query)
-        
+    
+            create_table_time_schedule = f"""
+            CREATE TABLE IF NOT EXISTS {classname}_timetable_schedule_tb (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                day TEXT NOT NULL,
+                period INTEGER NOT NULL,
+                subject TEXT NOT NULL,
+                staff TEXT NOT NULL,
+                UNIQUE(day, period)
+            )"""
+            
+            cur.execute(create_table_time_schedule)
+            con.commit()
             df = pd.read_excel(file)
             df = df[['rollno','name','email']] 
             df['dept'] = dept
@@ -486,6 +498,8 @@ def delete_class(classid,classname):
         cur.execute("DELETE FROM classes_tb WHERE classid = ?", (classid,))
         query = f"DROP TABLE {classname}"
         cur.execute(query)
+        delete_timetable_query = f"DROP TABLE {classname}_timetable_schedule_tb"
+        con.execute(delete_timetable_query)
         cur.execute("DELETE FROM students_tb WHERE classid=?", (classid,))
         con.commit()
         flash("Class deleted successfully!", "success")
@@ -535,6 +549,9 @@ def update_class():
         
         query = f"ALTER TABLE '{old_classname}' RENAME TO '{new_classname}'"
         cur.execute(query)
+        
+        rename_time_table_schedule = f"ALTER TABLE {old_classname}_timetable_schedule_tb RENAME TO '{new_classname}_timetable_schedule_tb'"
+        cur.execute(rename_time_table_schedule)
         con.commit()
         
         df = pd.read_excel(file)
@@ -546,7 +563,7 @@ def update_class():
     
         df.to_sql("students_tb", con, if_exists='append', index=False)
         con.commit()
-        flash("Class Updated success...!!","success")
+        flash("Class Updated successful...!!","success")
     except Exception as e:
         flash(f"Error Updating Class: {str(e)}", "danger")
     finally:
@@ -555,15 +572,37 @@ def update_class():
 
 
 
+    
+        
+@app.route("/class_schedule/<string:classname>")
+def class_schedule(classname):
+    con = sqlite3.connect('spm_db.db')
+    cur = con.cursor()
+    try:
+        cur.execute("SELECT username FROM users_tb")
+        staffs_names = [row[0] for row in cur.fetchall()]
+            
+        cur.execute('SELECT subjectname FROM subjects_tb')
+        subjectnames = [row[0] for row in cur.fetchall()]
+            
+        return render_template("admin/class_schedule_form.html",staffs_names=staffs_names,subjectnames=subjectnames,classname = classname)
+    except Exception as e:
+        flash(f"Error loading form: {str(e)}", "danger")
+        return redirect(url_for('view_class'))
+    finally:
+        con.close()  
+            
+    
 
 
-@app.route("/class_schedule", methods=["POST", "GET"])
-def class_schedule():
+@app.route("/class_schedule_insert", methods=["POST", "GET"])
+def class_schedule_insert():
     con = sqlite3.connect('spm_db.db')
     cur = con.cursor()
     
     if request.method == "POST":
         try:
+            classname = request.form.get('classname')
             days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday']
             for day in days:
                 for period in range(1, 9):
@@ -571,8 +610,8 @@ def class_schedule():
                     staff = request.form.get(f"{day}_p{period}_staff")
                     
                     if subject and staff:
-                        cur.execute("""
-                            INSERT OR REPLACE INTO timetable_tb 
+                        cur.execute(f"""
+                            INSERT OR REPLACE INTO {classname}_timetable_schedule_tb
                             (day, period, subject, staff) 
                             VALUES (?, ?, ?, ?)
                         """, (day, period, subject, staff))
@@ -584,30 +623,7 @@ def class_schedule():
             flash(f"Error saving schedule: {str(e)}", "danger")
         finally:
             con.close()
-            return redirect(url_for('class_schedule'))
-    
-    else:
-        try:
-            cur.execute("SELECT username FROM users_tb")
-            staffs_names = [row[0] for row in cur.fetchall()]
-            
-            cur.execute('SELECT subjectname FROM subjects_tb')
-            subjectnames = [row[0] for row in cur.fetchall()]
-            
-            return render_template("admin/class_schedule_form.html",
-                                staffs_names=staffs_names,
-                                subjectnames=subjectnames)
-        except Exception as e:
-            flash(f"Error loading form: {str(e)}", "danger")
-            return redirect(url_for('admin_dashboard'))
-        finally:
-            con.close()
-    
-    
-        
-        
-    
-
+            return redirect(url_for('view_class'))
 #----------------------------------end-admin-processes-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------#
 
 
@@ -622,23 +638,47 @@ def class_schedule():
 
 
 
-@app.route('/mark_attendance')
-def mark_attendance():
-    return render_template('staff/attendance_sheet.html')
+@app.route('/mark_attendance/<int:classid>')
+def mark_attendance(classid):
+    con = sqlite3.connect('spm_db.db')
+    con.row_factory = sqlite3.Row  # For dictionary-like access
+    cur = con.cursor()
+        
+        # Use parameterized query to prevent SQL injection
+    cur.execute("SELECT rollno, name FROM students_tb WHERE classid = ?", (classid,))
+    data = cur.fetchall()
+    con.close()    
+    return render_template('staff/attendance_sheet.html',data=data)
+
 
 @app.route('/view_all_attendance')
 def view_all_attendance():
-    return render_template('staff/view_attendance.html')
+    if 'userid' not in session:
+        return redirect(url_for('login'))  
     
+    user_id = str(session['userid']) 
+    
+
+    conn = sqlite3.connect('spm_db.db')
+    conn.row_factory = sqlite3.Row  
+    cursor = conn.cursor()
+    
+    
+    cursor.execute("SELECT classname, classid, staffsid FROM classes_tb")
+    all_classes = cursor.fetchall()
+    
+
+    classes = []
+    for cls in all_classes:
+        staff_ids = [id.strip() for id in cls['staffsid'].split(',')]
+        if user_id in staff_ids:
+            classes.append(cls)
+    
+    cursor.close()
+    conn.close()
+    
+    return render_template('staff/view_attendance.html', classes=classes)
         
-        
-      
-   
-
-
-  
-   
-
 #---------------------------------------end-staff-processes-----------------------------------------------------------------------------------------------------#
 
 if __name__ == '__main__':
