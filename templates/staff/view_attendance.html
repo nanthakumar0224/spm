@@ -104,7 +104,7 @@
                     <td>{{ class.classid }}</td>
                     <td>{{ class.staffsid }}</td>
                     <td>
-                        <a href="{{ url_for('mark_attendance', classid=class.classid) }}" 
+                        <a href="{{ url_for('mark_attendance', classid=class.classid,classname = class.classname) }}" 
                            class="btn btn-primary attendance-link">
                             <i class="fas fa-calendar-check"></i> Mark Attendance
                         </a>

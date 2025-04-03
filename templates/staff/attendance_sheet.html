@@ -678,12 +678,15 @@
     </nav>
 
     <div class="main-content">
-        <h1>Daily Attendance Sheet</h1>
+        <h1>Daily Attendance (All Staff)</h1>
         
-        <form id="attendanceForm" action="#" method="POST">
+        <form id="attendanceForm" action="/submit_attendance" method="POST">
+            <input type="hidden" name="classid" value="{{ classid }}">
+            <input type="hidden" name="classname" value="{{ classname }}">
+            
             <div class="date-input">
                 <label for="attendanceDate">Date:</label>
-                <input type="date" id="attendanceDate" name="attendanceDate" required>
+                <input type="date" id="attendanceDate" name="attendanceDate" value="{{ today_date }}" required>
             </div>
             
             <table id="attendanceTable">
@@ -691,96 +694,104 @@
                     <tr>
                         <th>Roll No</th>
                         <th>Name</th>
-                        <th>P1</th>
-                        <th>P2</th>
-                        <th>P3</th>
-                        <th>P4</th>
-                        <th>P5</th>
-                        <th>P6</th>
-                        <th>P7</th>
-                        <th>P8</th>
-                        <th>Present</th>
-                        <th>Absent</th>
+                        {% for i in range(8) %}
+                        <th>P{{ i+1 }}: {{ subjects[i] if subjects[i] else "Free" }}</th>
+                        {% endfor %}
+                        <th>Total Present</th>
+                        <th>Total Absent</th>
                     </tr>
                 </thead>
+        
                 <tbody>
-                    {% for row in data %}
-                    <tr>
-                        <td><input type="text" name="rollno_1" value="{{ row['rollno'] }}" required></td>
-                        <td><input type="text" name="name_1" value="{{ row['name'] }}" required></td>
-                        <td><input type="checkbox" name="p1_1" class="period-checkbox"></td>
-                        <td><input type="checkbox" name="p2_1" class="period-checkbox"></td>
-                        <td><input type="checkbox" name="p3_1" class="period-checkbox"></td>
-                        <td><input type="checkbox" name="p4_1" class="period-checkbox"></td>
-                        <td><input type="checkbox" name="p5_1" class="period-checkbox"></td>
-                        <td><input type="checkbox" name="p6_1" class="period-checkbox"></td>
-                        <td><input type="checkbox" name="p7_1" class="period-checkbox"></td>
-                        <td><input type="checkbox" name="p8_1" class="period-checkbox"></td>
-                        <td><input type="number" name="present_1" value="0" min="0" max="8" readonly></td>
-                        <td><input type="number" name="absent_1" value="8" min="0" max="8" readonly></td>
+                    {% for student in students %}
+                    <tr data-rollno="{{ student['rollno'] }}">
+                        <td>{{ student['rollno'] }}</td>
+                        <td>{{ student['name'] }}</td>
+                        
+                        {% for period_num in range(1, 9) %}
+                        <td>
+                            <input type="checkbox" 
+                                   name="attendance_{{ period_num }}_{{ student['rollno'] }}"
+                                   class="period-checkbox"
+                                   {% if period_num in current_staff_periods %}
+                                   {% if existing_attendance and student['rollno'] in existing_attendance %}
+                                   {{ 'checked' if existing_attendance[student['rollno']]['present'] >= period_num else '' }}
+                                   {% endif %}
+                                   {% else %}
+                                   disabled
+                                   {% endif %}>
+                        </td>
+                        {% endfor %}
+                        
+                        <td class="total-present">
+                            {% if existing_attendance and student['rollno'] in existing_attendance %}
+                            {{ existing_attendance[student['rollno']]['present'] }}
+                            {% else %}0{% endif %}
+                        </td>
+                        <td class="total-absent">
+                            {% if existing_attendance and student['rollno'] in existing_attendance %}
+                            {{ existing_attendance[student['rollno']]['absent'] }}
+                            {% else %}8{% endif %}
+                        </td>
                     </tr>
                     {% endfor %}
                 </tbody>
             </table>
             
             <div class="action-buttons">
-                <button type="button" id="clearBtn">Clear</button>
-                <button type="submit" id="saveBtn">Save</button>
+                <button type="button" id="clearBtn">Clear My Periods</button>
+                <button type="submit" id="saveBtn">Save Attendance</button>
             </div>
         </form>
     </div>
+    
+    
+   
 
     <footer class="footer">
         <p class="copyright">© 2025 computerstudents@mspvl All Rights Reserved.</p>
     </footer>
-
+    
     <script>
-        // Set today's date as default
         document.addEventListener('DOMContentLoaded', function() {
-            const today = new Date().toISOString().split('T')[0];
-            document.getElementById('attendanceDate').value = today;
+            const dateInput = document.getElementById('attendanceDate');
+            dateInput.max = new Date().toISOString().split('T')[0];
             
-            // Disable future dates
-            document.getElementById('attendanceDate').max = today;
-            
-            // Add event listeners to checkboxes
-            const checkboxes = document.querySelectorAll('.period-checkbox');
-            checkboxes.forEach(checkbox => {
-                checkbox.addEventListener('change', function() {
-                    const row = this.closest('tr');
-                    const presentInput = row.querySelector('input[name^="present_"]');
-                    const absentInput = row.querySelector('input[name^="absent_"]');
-                    
-                    // Count checked checkboxes in this row
-                    const rowCheckboxes = row.querySelectorAll('.period-checkbox');
-                    let presentCount = 0;
-                    rowCheckboxes.forEach(cb => {
-                        if (cb.checked) presentCount++;
-                    });
-                    
-                    presentInput.value = presentCount;
-                    absentInput.value = 8 - presentCount;
-                });
+            // Update counts when checkboxes change
+            document.getElementById('attendanceTable').addEventListener('change', function(e) {
+                if (e.target.classList.contains('period-checkbox')) {
+                    updateAttendanceTotals();
+                }
             });
             
-            // Clear button functionality
+            // Clear only periods for current staff
             document.getElementById('clearBtn').addEventListener('click', function() {
-                const checkboxes = document.querySelectorAll('.period-checkbox');
-                checkboxes.forEach(checkbox => {
+                document.querySelectorAll('.period-checkbox:not([disabled])').forEach(checkbox => {
                     checkbox.checked = false;
                 });
-                
-                const presentInputs = document.querySelectorAll('input[name^="present_"]');
-                presentInputs.forEach(input => {
-                    input.value = 0;
-                });
-                
-                const absentInputs = document.querySelectorAll('input[name^="absent_"]');
-                absentInputs.forEach(input => {
-                    input.value = 8;
-                });
+                updateAttendanceTotals();
             });
+            
+            // Calculate total present/absent across all periods
+            function updateAttendanceTotals() {
+                document.querySelectorAll('tbody tr').forEach(row => {
+                    const rollno = row.dataset.rollno;
+                    let presentCount = 0;
+                    
+                    // Count all checked boxes (including disabled ones)
+                    row.querySelectorAll('.period-checkbox').forEach(checkbox => {
+                        if (checkbox.checked) presentCount++;
+                    });
+                    
+                    const absentCount = 8 - presentCount;
+                    
+                    row.querySelector('.total-present').textContent = presentCount;
+                    row.querySelector('.total-absent').textContent = absentCount;
+                });
+            }
         });
-    </script>
+        </script>
+
+   
 </body>
 </html>

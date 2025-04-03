@@ -636,19 +636,180 @@ def class_schedule_insert():
 
 #--------------------------------------staff-processes-------------------------------------------------------------------------------------------------#
 
-
-
-@app.route('/mark_attendance/<int:classid>')
-def mark_attendance(classid):
+'''@app.route('/mark_attendance/<int:classid>/<string:classname>')
+def mark_attendance(classid, classname):
+    if 'username' not in session or 'userid' not in session:
+        return redirect(url_for('login'))
+    
     con = sqlite3.connect('spm_db.db')
-    con.row_factory = sqlite3.Row  # For dictionary-like access
+    con.row_factory = sqlite3.Row
     cur = con.cursor()
-        
-        # Use parameterized query to prevent SQL injection
+    
+    # Get current day name (lowercase)
+    today_day = datetime.datetime.now().strftime("%A").lower()
+    current_staff_username = session['username']
+    current_staff_id = session['userid']
+    
+    # Get student data
     cur.execute("SELECT rollno, name FROM students_tb WHERE classid = ?", (classid,))
-    data = cur.fetchall()
-    con.close()    
-    return render_template('staff/attendance_sheet.html',data=data)
+    students = cur.fetchall()
+    
+    # Get timetable for today and identify which periods belong to current staff
+    cur.execute(f"""
+        SELECT period, subject, staff 
+        FROM {classname}_timetable_schedule_tb 
+        WHERE day = ?
+        ORDER BY period
+    """, (today_day,))
+    
+    periods = cur.fetchall()
+    
+    # Prepare data for template
+    subjects = [""] * 8  # Initialize all periods as empty/free
+    current_staff_periods = set()  # Set of periods (1-8) assigned to current staff
+    
+    for period in periods:
+        period_num = period['period']
+        if 1 <= period_num <= 8:
+            subjects[period_num-1] = period['subject']
+            if period['staff'] == current_staff_username:
+                current_staff_periods.add(period_num)
+    
+    con.close()
+    
+    return render_template('staff/attendance_sheet.html',
+                         students=students,
+                         subjects=subjects,
+                         current_staff_periods=current_staff_periods,
+                         classid=classid,
+                         classname=classname)
+    '''
+    
+    
+@app.route('/mark_attendance/<int:classid>/<string:classname>')
+def mark_attendance(classid, classname):
+    if 'username' not in session or 'userid' not in session:
+        return redirect(url_for('login'))
+    
+    con = sqlite3.connect('spm_db.db')
+    con.row_factory = sqlite3.Row
+    cur = con.cursor()
+    
+    today_date = datetime.datetime.now().strftime('%Y-%m-%d')
+    today_day = datetime.datetime.now().strftime("%A").lower()
+    current_staff_username = session['username']
+    
+    # Get all students
+    cur.execute("SELECT rollno, name FROM students_tb WHERE classid = ?", (classid,))
+    students = cur.fetchall()
+    
+    # Get today's timetable to determine which periods belong to current staff
+    cur.execute(f"""
+        SELECT period, subject, staff 
+        FROM {classname}_timetable_schedule_tb 
+        WHERE day = ?
+        ORDER BY period
+    """, (today_day,))
+    periods = cur.fetchall()
+    
+    # Get ALL attendance for today (from all staff)
+    cur.execute(f"""
+        SELECT rollno, present, absent 
+        FROM {classname}
+        WHERE date = ?
+    """, (today_date,))
+    existing_attendance = {row['rollno']: row for row in cur.fetchall()}
+    
+    # Prepare data
+    subjects = [""] * 8
+    current_staff_periods = set()
+    
+    for period in periods:
+        period_num = period['period']
+        if 1 <= period_num <= 8:
+            subjects[period_num-1] = period['subject']
+            if period['staff'] == current_staff_username:
+                current_staff_periods.add(period_num)
+    
+    con.close()
+    
+    return render_template('staff/attendance_sheet.html',
+                         students=students,
+                         subjects=subjects,
+                         current_staff_periods=current_staff_periods,
+                         existing_attendance=existing_attendance,
+                         today_date=today_date,
+                         classid=classid,
+                         classname=classname)
+@app.route('/submit_attendance', methods=['POST'])
+def submit_attendance():
+    if 'username' not in session or 'userid' not in session:
+        return redirect(url_for('login'))
+
+    classid = request.form['classid']
+    classname = request.form['classname']
+    attendance_date = request.form['attendanceDate']
+    
+    # Get day name from the selected date
+    day_name = datetime.datetime.strptime(attendance_date, '%Y-%m-%d').strftime("%A").lower()
+    
+    con = sqlite3.connect('spm_db.db')
+    con.row_factory = sqlite3.Row
+    cur = con.cursor()
+    
+    # Get all students in this class
+    cur.execute("SELECT rollno, name FROM students_tb WHERE classid = ?", (classid,))
+    all_students = cur.fetchall()
+    
+    # Process attendance for each student
+    for student in all_students:
+        rollno = student['rollno']
+        name = student['name']
+        present = 0
+        absent = 8  # Default to all periods absent
+        
+        # Count present periods for this student
+        for period_num in range(1, 9):
+            if f'attendance_{period_num}_{rollno}' in request.form:
+                present += 1
+                absent -= 1
+        
+        # Check if attendance record already exists for this student and date
+        cur.execute(
+            f"SELECT 1 FROM {classname} WHERE rollno = ? AND date = ?",
+            (rollno, attendance_date)
+        )
+        record_exists = cur.fetchone() is not None
+        
+        if record_exists:
+            # Update existing record
+            cur.execute(
+                f"""UPDATE {classname}
+                SET present = ?, absent = ?, day = ?
+                WHERE rollno = ? AND date = ?""",
+                (present, absent, day_name, rollno, attendance_date)
+            )
+        else:
+            # Insert new record
+            cur.execute(
+                f"""INSERT INTO {classname}
+                (rollno, name, present, absent, day, date)
+                VALUES (?, ?, ?, ?, ?, ?)""",
+                (rollno, name, present, absent, day_name, attendance_date)
+            )
+    
+    con.commit()
+    con.close()
+    
+    flash('Attendance saved successfully!', 'success')
+    return redirect(url_for('mark_attendance', classid=classid, classname=classname))
+
+
+
+
+#super !!then the user click save attendance you check the today date if its already present inthe corresponding table (table name = {classname} ) inthe column of date and if its not present insert the user data rollno,name,present,absent,day,date
+
+#if the today date already inserted you update the above process not insert new row ok
 
 
 @app.route('/view_all_attendance')
@@ -657,8 +818,6 @@ def view_all_attendance():
         return redirect(url_for('login'))  
     
     user_id = str(session['userid']) 
-    
-
     conn = sqlite3.connect('spm_db.db')
     conn.row_factory = sqlite3.Row  
     cursor = conn.cursor()
