@@ -691,8 +691,8 @@
                         <th>Roll No</th>
                         <th>Name</th>
                         {% for i in range(8) %}
-                        <th>P{{ i+1 }}: {{ subjects[i] if subjects[i] else "Leave" }}<br>
-                           
+                        <th>P{{ i+1 }}: {{ subjects[i] if subjects[i] else "Free" }}<br>
+                            <small>{{ staff_periods[i+1] if staff_periods[i+1] else "Unassigned" }}</small>
                         </th>
                         {% endfor %}
                         <th>Present</th>
@@ -786,3 +786,160 @@
     </script>
 </body>
 </html>
+
+
+
+
+@app.route('/mark_attendance/<int:classid>/<string:classname>')
+def mark_attendance(classid, classname):
+    if 'username' not in session or 'userid' not in session:
+        return redirect(url_for('login'))
+
+    conn = sqlite3.connect("spm_db.db")
+    conn.row_factory = sqlite3.Row
+    
+    # Get today's date and day
+    today_date = datetime.datetime.now().strftime('%Y-%m-%d')
+    #today_day = datetime.datetime.now().strftime("%A").lower()
+    today_day = "monday"
+    current_staff_username = session['username']
+    
+    # Get students
+    students = conn.execute(
+        "SELECT rollno, name FROM students_tb WHERE classid = ?", 
+        (classid,)
+    ).fetchall()
+    
+    # Get all periods for today with staff info
+    all_periods = conn.execute(
+        f"SELECT period, subject, staff FROM {classname}_timetable_schedule_tb WHERE day = ?",
+        (today_day,)
+    ).fetchall()
+    
+    # Get attendance for today's date
+    attendance_records = conn.execute(
+        f"SELECT rollno, p1, p2, p3, p4, p5, p6, p7, p8, present, absent FROM {classname} WHERE date = ?",
+        (today_date,)
+    ).fetchall()
+    
+    # Prepare attendance data
+    existing_attendance = {}
+    for record in attendance_records:
+        existing_attendance[record['rollno']] = {
+            'p1': record['p1'],
+            'p2': record['p2'],
+            'p3': record['p3'],
+            'p4': record['p4'],
+            'p5': record['p5'],
+            'p6': record['p6'],
+            'p7': record['p7'],
+            'p8': record['p8'],
+            'present': record['present'],
+            'absent': record['absent']
+        }
+    
+    # Prepare timetable data
+    subjects = [""] * 8
+    staff_periods = {}  # {period_num: staff_username}
+    current_staff_periods = set()
+    
+    for period in all_periods:
+        period_num = period['period']
+        if 1 <= period_num <= 8:
+            subjects[period_num-1] = period['subject']
+            staff_periods[period_num] = period['staff']
+            if period['staff'] == current_staff_username:
+                current_staff_periods.add(period_num)
+    
+    conn.close()
+    
+    return render_template('staff/attendance_sheet.html',
+                         students=students,
+                         subjects=subjects,
+                         staff_periods=staff_periods,
+                         current_staff_periods=current_staff_periods,
+                         existing_attendance=existing_attendance,
+                         today_date=today_date,
+                         today_day=today_day,
+                         classid=classid,
+                         classname=classname)
+
+@app.route('/submit_attendance', methods=['POST'])
+def submit_attendance():
+    if 'username' not in session:
+        return redirect(url_for('login'))
+    
+    conn = sqlite3.connect("spm_db.db")
+    conn.row_factory = sqlite3.Row
+    try:
+        classid = request.form['classid']
+        classname = request.form['classname']
+        today_date = datetime.datetime.now().strftime('%Y-%m-%d')
+        #today_day = datetime.datetime.now().strftime("%A").lower()
+        today_day = "monday"
+        current_staff_username = session['username']
+        
+        # Get staff's periods for today
+        staff_periods = [row['period'] for row in conn.execute(
+            f"SELECT period FROM {classname}_timetable_schedule_tb WHERE day = ? AND staff = ?",
+            (today_day, current_staff_username)
+        ).fetchall()]
+        
+        # Get all students
+        students = conn.execute(
+            "SELECT rollno, name FROM students_tb WHERE classid = ?",
+            (classid,)
+        ).fetchall()
+        
+        for student in students:
+            rollno = student['rollno']
+            name = student['name']
+            
+            # Check if record exists for today
+            existing_data = conn.execute(
+                f"SELECT * FROM {classname} WHERE rollno = ? AND date = ?",
+                (rollno, today_date)
+            ).fetchone()
+            
+            # Initialize period values (default to 0)
+            period_values = {f'p{i}': 0 for i in range(1, 9)}
+            
+            # If record exists, load existing values
+            if existing_data:
+                for i in range(1, 9):
+                    period_values[f'p{i}'] = existing_data[f'p{i}']
+            
+            # Update only the periods this staff is responsible for
+            for period in staff_periods:
+                checkbox_name = f'attendance_{period}_{rollno}'
+                period_values[f'p{period}'] = 1 if checkbox_name in request.form else 0
+            
+            # Calculate totals
+            present = sum(period_values.values())
+            absent = 8 - present
+            
+            # Insert or update record
+            conn.execute(
+                f"""INSERT OR REPLACE INTO {classname} 
+                (rollno, name, date, day, p1, p2, p3, p4, p5, p6, p7, p8, present, absent)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                (rollno, name, today_date, today_day,
+                 period_values['p1'], period_values['p2'], period_values['p3'], period_values['p4'],
+                 period_values['p5'], period_values['p6'], period_values['p7'], period_values['p8'],
+                 present, absent)
+            )
+        
+        conn.commit()
+        flash('Attendance saved successfully!', 'success')
+    
+    except Exception as e:
+        conn.rollback()
+        flash(f'Error saving attendance: {str(e)}', 'danger')
+        app.logger.error(f"Error in submit_attendance: {str(e)}")
+    
+    finally:
+        conn.close()
+    
+    return redirect(url_for('mark_attendance', 
+                         classid=classid, 
+                         classname=classname))

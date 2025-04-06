@@ -434,7 +434,7 @@ def insert_class():
                 VALUES (?, ?, ?, ?, ?, ?)
             """, (classid, classname, dept, year, semester, ",".join(selected_staffsid)))
             
-            create_table_query = f"CREATE TABLE IF NOT EXISTS {classname} (slno INTEGER, rollno INTEGER,name VARCHAR(50),present INTEGER, absent INTEGER,date VARCHAR(50),day VARCHAR(50))"
+            create_table_query = f"CREATE TABLE IF NOT EXISTS {classname} (rollno INTEGER,name VARCHAR(50),p1 INTEGER,p2 INTEGER,p3 INTEGER,p4 INTEGER,p5 INTEGER,p6 INTEGER,p7 INTEGER,p8 INTEGE,present INTEGER, absent INTEGER,date VARCHAR(50),day VARCHAR(50))"
             cur.execute(create_table_query)
     
             create_table_time_schedule = f"""
@@ -636,182 +636,174 @@ def class_schedule_insert():
 
 #--------------------------------------staff-processes-------------------------------------------------------------------------------------------------#
 
-'''@app.route('/mark_attendance/<int:classid>/<string:classname>')
-def mark_attendance(classid, classname):
-    if 'username' not in session or 'userid' not in session:
-        return redirect(url_for('login'))
-    
-    con = sqlite3.connect('spm_db.db')
-    con.row_factory = sqlite3.Row
-    cur = con.cursor()
-    
-    # Get current day name (lowercase)
-    today_day = datetime.datetime.now().strftime("%A").lower()
-    current_staff_username = session['username']
-    current_staff_id = session['userid']
-    
-    # Get student data
-    cur.execute("SELECT rollno, name FROM students_tb WHERE classid = ?", (classid,))
-    students = cur.fetchall()
-    
-    # Get timetable for today and identify which periods belong to current staff
-    cur.execute(f"""
-        SELECT period, subject, staff 
-        FROM {classname}_timetable_schedule_tb 
-        WHERE day = ?
-        ORDER BY period
-    """, (today_day,))
-    
-    periods = cur.fetchall()
-    
-    # Prepare data for template
-    subjects = [""] * 8  # Initialize all periods as empty/free
-    current_staff_periods = set()  # Set of periods (1-8) assigned to current staff
-    
-    for period in periods:
-        period_num = period['period']
-        if 1 <= period_num <= 8:
-            subjects[period_num-1] = period['subject']
-            if period['staff'] == current_staff_username:
-                current_staff_periods.add(period_num)
-    
-    con.close()
-    
-    return render_template('staff/attendance_sheet.html',
-                         students=students,
-                         subjects=subjects,
-                         current_staff_periods=current_staff_periods,
-                         classid=classid,
-                         classname=classname)
-    '''
-    
-    
 @app.route('/mark_attendance/<int:classid>/<string:classname>')
 def mark_attendance(classid, classname):
     if 'username' not in session or 'userid' not in session:
         return redirect(url_for('login'))
+
+    conn = sqlite3.connect("spm_db.db")
+    conn.row_factory = sqlite3.Row
     
-    con = sqlite3.connect('spm_db.db')
-    con.row_factory = sqlite3.Row
-    cur = con.cursor()
-    
+    # Get today's date and day
     today_date = datetime.datetime.now().strftime('%Y-%m-%d')
-    today_day = datetime.datetime.now().strftime("%A").lower()
+    #today_day = datetime.datetime.now().strftime("%A").lower()
+    today_day = "monday"
     current_staff_username = session['username']
     
-    # Get all students
-    cur.execute("SELECT rollno, name FROM students_tb WHERE classid = ?", (classid,))
-    students = cur.fetchall()
+    # Get students
+    students = conn.execute(
+        "SELECT rollno, name FROM students_tb WHERE classid = ?", 
+        (classid,)
+    ).fetchall()
     
-    # Get today's timetable to determine which periods belong to current staff
-    cur.execute(f"""
-        SELECT period, subject, staff 
-        FROM {classname}_timetable_schedule_tb 
-        WHERE day = ?
-        ORDER BY period
-    """, (today_day,))
-    periods = cur.fetchall()
+    # Get all periods for today with staff info
+    all_periods = conn.execute(
+        f"SELECT period, subject, staff FROM {classname}_timetable_schedule_tb WHERE day = ?",
+        (today_day,)
+    ).fetchall()
     
-    # Get ALL attendance for today (from all staff)
-    cur.execute(f"""
-        SELECT rollno, present, absent 
-        FROM {classname}
-        WHERE date = ?
-    """, (today_date,))
-    existing_attendance = {row['rollno']: row for row in cur.fetchall()}
+    # Get attendance for today's date
+    attendance_records = conn.execute(
+        f"SELECT rollno, p1, p2, p3, p4, p5, p6, p7, p8, present, absent FROM {classname} WHERE date = ?",
+        (today_date,)
+    ).fetchall()
     
-    # Prepare data
+    # Prepare attendance data
+    existing_attendance = {}
+    for record in attendance_records:
+        existing_attendance[record['rollno']] = {
+            'p1': record['p1'],
+            'p2': record['p2'],
+            'p3': record['p3'],
+            'p4': record['p4'],
+            'p5': record['p5'],
+            'p6': record['p6'],
+            'p7': record['p7'],
+            'p8': record['p8'],
+            'present': record['present'],
+            'absent': record['absent']
+        }
+    
+    # Prepare timetable data
     subjects = [""] * 8
+    staff_periods = {}  # {period_num: staff_username}
     current_staff_periods = set()
     
-    for period in periods:
+    for period in all_periods:
         period_num = period['period']
         if 1 <= period_num <= 8:
             subjects[period_num-1] = period['subject']
+            staff_periods[period_num] = period['staff']
             if period['staff'] == current_staff_username:
                 current_staff_periods.add(period_num)
     
-    con.close()
+    conn.close()
     
     return render_template('staff/attendance_sheet.html',
                          students=students,
                          subjects=subjects,
+                         staff_periods=staff_periods,
                          current_staff_periods=current_staff_periods,
                          existing_attendance=existing_attendance,
                          today_date=today_date,
+                         today_day=today_day,
                          classid=classid,
                          classname=classname)
+
 @app.route('/submit_attendance', methods=['POST'])
 def submit_attendance():
-    if 'username' not in session or 'userid' not in session:
+    if 'username' not in session:
         return redirect(url_for('login'))
-
-    classid = request.form['classid']
-    classname = request.form['classname']
-    attendance_date = request.form['attendanceDate']
     
-    # Get day name from the selected date
-    day_name = datetime.datetime.strptime(attendance_date, '%Y-%m-%d').strftime("%A").lower()
+    conn = sqlite3.connect("spm_db.db")
+    conn.row_factory = sqlite3.Row
     
-    con = sqlite3.connect('spm_db.db')
-    con.row_factory = sqlite3.Row
-    cur = con.cursor()
-    
-    # Get all students in this class
-    cur.execute("SELECT rollno, name FROM students_tb WHERE classid = ?", (classid,))
-    all_students = cur.fetchall()
-    
-    # Process attendance for each student
-    for student in all_students:
-        rollno = student['rollno']
-        name = student['name']
-        present = 0
-        absent = 8  # Default to all periods absent
+    try:
+        classid = request.form['classid']
+        classname = request.form['classname']
+        today_date = datetime.datetime.now().strftime('%Y-%m-%d')
+        today_day = datetime.datetime.now().strftime("%A").lower()
+        today_day = "monday"
+        current_staff_username = session['username']
         
-        # Count present periods for this student
-        for period_num in range(1, 9):
-            if f'attendance_{period_num}_{rollno}' in request.form:
-                present += 1
-                absent -= 1
+        # Get staff's periods for today
+        staff_periods = [row['period'] for row in conn.execute(
+            f"SELECT period FROM {classname}_timetable_schedule_tb WHERE day = ? AND staff = ?",
+            (today_day, current_staff_username)
+        ).fetchall()]
         
-        # Check if attendance record already exists for this student and date
-        cur.execute(
-            f"SELECT 1 FROM {classname} WHERE rollno = ? AND date = ?",
-            (rollno, attendance_date)
-        )
-        record_exists = cur.fetchone() is not None
+        # Get all students
+        students = conn.execute(
+            "SELECT rollno, name FROM students_tb WHERE classid = ?",
+            (classid,)
+        ).fetchall()
         
-        if record_exists:
-            # Update existing record
-            cur.execute(
-                f"""UPDATE {classname}
-                SET present = ?, absent = ?, day = ?
-                WHERE rollno = ? AND date = ?""",
-                (present, absent, day_name, rollno, attendance_date)
-            )
-        else:
-            # Insert new record
-            cur.execute(
-                f"""INSERT INTO {classname}
-                (rollno, name, present, absent, day, date)
-                VALUES (?, ?, ?, ?, ?, ?)""",
-                (rollno, name, present, absent, day_name, attendance_date)
-            )
+        for student in students:
+            rollno = student['rollno']
+            name = student['name']
+            
+            # Check if attendance record exists for today
+            existing_record = conn.execute(
+                f"SELECT * FROM {classname} WHERE rollno = ? AND date = ?",
+                (rollno, today_date)
+            ).fetchone()
+            
+            # Initialize period values
+            period_values = {f'p{i}': 0 for i in range(1, 9)}
+            
+            # If record exists, load existing values
+            if existing_record:
+                for i in range(1, 9):
+                    period_values[f'p{i}'] = existing_record[f'p{i}']
+            
+            # Update only the periods this staff is responsible for
+            for period in staff_periods:
+                checkbox_name = f'attendance_{period}_{rollno}'
+                period_values[f'p{period}'] = 1 if checkbox_name in request.form else 0
+            
+            # Calculate totals
+            present = sum(period_values.values())
+            absent = 8 - present
+            
+            if existing_record:
+                # Update existing record
+                conn.execute(
+                    f"""UPDATE {classname} SET
+                    p1 = ?, p2 = ?, p3 = ?, p4 = ?,
+                    p5 = ?, p6 = ?, p7 = ?, p8 = ?,
+                    present = ?, absent = ?
+                    WHERE rollno = ? AND date = ?""",
+                    (period_values['p1'], period_values['p2'], period_values['p3'], period_values['p4'],
+                     period_values['p5'], period_values['p6'], period_values['p7'], period_values['p8'],
+                     present, absent, rollno, today_date)
+                )
+            else:
+                # Insert new record
+                conn.execute(
+                    f"""INSERT INTO {classname} 
+                    (rollno, name, date, day, p1, p2, p3, p4, p5, p6, p7, p8, present, absent)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                    (rollno, name, today_date, today_day,
+                     period_values['p1'], period_values['p2'], period_values['p3'], period_values['p4'],
+                     period_values['p5'], period_values['p6'], period_values['p7'], period_values['p8'],
+                     present, absent)
+                )
+        
+        conn.commit()
+        flash('Attendance saved successfully!', 'success')
     
-    con.commit()
-    con.close()
+    except Exception as e:
+        conn.rollback()
+        flash(f'Error saving attendance: {str(e)}', 'danger')
+        app.logger.error(f"Error in submit_attendance: {str(e)}")
     
-    flash('Attendance saved successfully!', 'success')
-    return redirect(url_for('mark_attendance', classid=classid, classname=classname))
-
-
-
-
-#super !!then the user click save attendance you check the today date if its already present inthe corresponding table (table name = {classname} ) inthe column of date and if its not present insert the user data rollno,name,present,absent,day,date
-
-#if the today date already inserted you update the above process not insert new row ok
-
-
+    finally:
+        conn.close()
+    
+    return redirect(url_for('mark_attendance', 
+                         classid=classid, 
+                         classname=classname))
+    
 @app.route('/view_all_attendance')
 def view_all_attendance():
     if 'userid' not in session:
@@ -842,28 +834,3 @@ def view_all_attendance():
 
 if __name__ == '__main__':
     app.run(debug=True)
-    
-    
-    
-    
-
-'''def init_db():
-   init_db()
-    con = sqlite3.connect('spm_db.db')
-    cur = con.cursor()
-    try:
-        cur.execute("""
-            CREATE TABLE IF NOT EXISTS timetable_tb (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                day TEXT NOT NULL,
-                period INTEGER NOT NULL,
-                subject TEXT NOT NULL,
-                staff TEXT NOT NULL,
-                UNIQUE(day, period)
-            )
-        """)
-        con.commit()
-    finally:
-        con.close()
-
-'''
