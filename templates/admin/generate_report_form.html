@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Report Geneare form</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="static/css/style.css">
+      
+</head>
+<body>
+    {% with msg=get_flashed_messages() %}
+    {% if msg %}
+    <script>
+        alert("{{msg[0]}}");
+    </script>
+    {% endif %}
+    {% endwith %}
+    <nav class="navbar">
+        <a href="#" class="navbar-brand">Admin Panel</a>
+        <div class="nav-menu">
+            <a href="{{url_for('admin_dashboard')}}" class="nav-item active">Home</a>
+
+            <div class="dropdown">
+                <a href="#" class="nav-item dropdown-toggle">Manage Dept</a>
+                <div class="dropdown-content">
+                    <a href="{{url_for('insert_dept')}}" class="dropdown-item">Add Dept</a>
+                    <a href="{{url_for('view_dept')}}" class="dropdown-item">View Dept</a>
+                </div>
+            </div>
+            
+            <div class="dropdown">
+                <a href="#" class="nav-item dropdown-toggle">Manage Staff</a>
+                <div class="dropdown-content">
+                    <a href="{{url_for('insert_staff')}}" class="dropdown-item">Add Staff</a>
+                    <a href="{{url_for('view_staff')}}" class="dropdown-item">View Staff</a>
+                </div>
+            </div>
+            
+            <div class="dropdown">
+                <a href="#" class="nav-item dropdown-toggle">Manage Subjects</a>
+                <div class="dropdown-content">
+                    <a href="{{url_for('insert_sub')}}" class="dropdown-item">Add Subject</a>
+                    <a href="{{url_for('view_subject')}}" class="dropdown-item">View Subjects</a>
+                </div>
+            </div>
+            
+            <div class="dropdown">
+                <a href="#" class="nav-item dropdown-toggle">Manage Attendance</a>
+                <div class="dropdown-content">
+                    <a href="{{url_for('insert_class')}}" class="dropdown-item">Add Attendance</a>
+                    <a href="{{url_for('view_class')}}" class="dropdown-item">View Attendance</a>
+                </div>
+            </div>
+            
+            <a href="{{url_for('update_admin')}}" class="nav-item">Update Admin</a>
+          
+            
+            <a href="{{url_for('generate_report')}}" class="nav-item">Manage Reports</a>
+            <a href="{{url_for('home')}}"class="nav-item" id="logout-link">
+                <span>Logout</span>
+                <i class="fas fa-sign-out-alt"></i>
+            </a>
+        </div>
+    </nav>
+
+    <div class="main-content">
+        <form action="/generate_report" method="POST" class="form-container">
+            <div class="label">GENERATE REPORT</div>
+
+            <div class="input-group">
+                <label for="classname">Class Name :</label>
+                <select id="classname" name="classname" onchange="updateDateLimits()">
+                    <option value="">Select Class</option>
+                    {% for class in class_list %}
+                        <option value="{{ class }}"
+                            {% if date_ranges and class in date_ranges %}
+                                data-min-date="{{ date_ranges[class].min_date }}"
+                                data-max-date="{{ date_ranges[class].max_date }}"
+                            {% endif %}>
+                            {{ class }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+    
+            <div class="input-group">
+                <label for="startdate">Start Date</label>
+                <input type="date" id="startdate" name="startdate" required 
+                       onchange="updateEndDateMin()">
+            </div>
+
+            <div class="input-group">
+                <label for="enddate">End Date</label>
+                <input type="date" id="enddate" name="enddate" required
+                       onchange="updateStartDateMax()">
+            </div>            
+
+    
+            <div class="button-group">
+                <button type="submit" class="submit-btn">GENERATE</button>
+                <button type="reset" class="clear-btn">Clear</button>
+            </div>
+        </form>
+    </div>
+
+    <script>
+        function updateDateLimits() {
+            const classSelect = document.getElementById('classname');
+            const selectedOption = classSelect.options[classSelect.selectedIndex];
+            const minDate = selectedOption.dataset.minDate;
+            const maxDate = selectedOption.dataset.maxDate;
+            
+            const startDateInput = document.getElementById('startdate');
+            const endDateInput = document.getElementById('enddate');
+            
+            if (minDate && maxDate) {
+                startDateInput.min = minDate;
+                startDateInput.max = maxDate;
+                endDateInput.min = minDate;
+                endDateInput.max = maxDate;
+                
+                // Set default values
+                startDateInput.value = minDate;
+                endDateInput.value = maxDate;
+            } else {
+                // No attendance data exists for this class
+                startDateInput.removeAttribute('min');
+                startDateInput.removeAttribute('max');
+                endDateInput.removeAttribute('min');
+                endDateInput.removeAttribute('max');
+                startDateInput.value = '';
+                endDateInput.value = '';
+            }
+        }
+
+        function updateEndDateMin() {
+            const startDate = document.getElementById('startdate').value;
+            if (startDate) {
+                document.getElementById('enddate').min = startDate;
+            }
+        }
+
+        function updateStartDateMax() {
+            const endDate = document.getElementById('enddate').value;
+            if (endDate) {
+                document.getElementById('startdate').max = endDate;
+            }
+        }
+
+        // Initialize date limits when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            updateDateLimits();
+        });
+    </script>
+</body>
+</html>

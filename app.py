@@ -1,8 +1,7 @@
-from flask import Flask, render_template, request,session,send_file,flash,url_for,redirect
+from flask import Flask, render_template, request,session,flash,url_for,redirect
 import sqlite3
 import pandas as pd
 import datetime
-
 app = Flask(__name__)
 app.secret_key = '123' 
 
@@ -23,15 +22,22 @@ def admin_dashboard():
     total_classes = len(cur.fetchall()) 
     return render_template("admin/admin_panel.html",total_staff=total_staff,total_classes=total_classes)
 
+
+@app.route("/staff_dashboard")
+def staff_dashboard():
+    return render_template("staff/staff_panel.html")
+    
+   
+@app.route("/student_dashboard")
+def student_dashboard(): 
+    return render_template("student/student_panel.html")
 #---------------------------------------------------------------------------------------------------------------#
 
 #---------------------------------login-process---------------------------------------------------------------#
-
-#login user
-@app.route('/login', methods=["POST", "GET"])
-def login():
+#admin login
+@app.route('/admin_login', methods=["POST", "GET"])
+def admin_login():
     if request.method == "POST":
-        con = None   
         try:
             con = sqlite3.connect("spm_db.db")
             cur = con.cursor()
@@ -40,58 +46,79 @@ def login():
             password = request.form.get('password')
             userid = request.form.get('userid')
             
-            if username == "admin" and password == "123" and userid =="1":
-                session['userid'] = 1
-                session['username'] = "admin"
-                flash("Login Successful..!!","success")
-                con = sqlite3.connect("spm_db.db")
-                cur = con.cursor()
+            cur.execute("SELECT * FROM admin_tb WHERE username=? AND password=? and userid=?", (username, password,userid))
+            data = cur.fetchall()
+                
+            if data:
+                session['userid'] = int(userid)
+                session['username'] = username
                 cur.execute("SELECT * FROM users_tb")
                 total_staff = len(cur.fetchall()) 
     
                 cur.execute("SELECT * FROM classes_tb")
                 total_classes = len(cur.fetchall()) 
+                flash("Login Successful..!!","success")
                 return render_template("admin/admin_panel.html",total_staff=total_staff,total_classes=total_classes)
-            else:
-                cur.execute("SELECT * FROM users_tb WHERE username=? AND pass=? and userid=?", (username, password,userid))
-                data = cur.fetchall()
                 
-                if data:
-                        session['userid'] = int(userid)
-                        session['username'] = username
-                        flash("Login Successful..!!","success")
-                        return render_template("staff/staff_panel.html") 
-                else:
-                    flash("Login Failed..!!","danger")
-                    return redirect(url_for('login'))
+            else:
+                flash("Login Failed..!!","danger")
+                return redirect(url_for('admin_login'))
                 
         except Exception as e:
             flash(f"Error in Login: {str(e)}", "danger")
         finally:
-            if con:
-                con.close()
-        
+            con.close()
     else:
-        return render_template("login.html")
+        return render_template("admin/admin_login_form.html")
     
+
+#staff login
+@app.route('/staff_login', methods=["POST", "GET"])
+def staff_login():
+    if request.method == "POST":
+        try:
+            con = sqlite3.connect("spm_db.db")
+            cur = con.cursor()
+                
+            username = request.form.get('username')
+            password = request.form.get('password')
+            userid = request.form.get('userid')
+            
+            cur.execute("SELECT * FROM users_tb WHERE username=? AND pass=? and userid=?", (username, password,userid))
+            data = cur.fetchall()
+                
+            if data:
+                session['userid'] = int(userid)
+                session['username'] = username
+                flash("Login Successful..!!","success")
+                return render_template("staff/staff_panel.html") 
+            else:
+                flash("Login Failed..!!","danger")
+                return redirect(url_for('staff_login'))
+                
+        except Exception as e:
+            flash(f"Error in Login: {str(e)}", "danger")
+        finally:
+            con.close()
+    else:
+        return render_template("staff/staff_login_form.html")
+    
+    
+#student login
+@app.route("/student_login")
+def student_login():
+    flash("Login Successful..!!","success")
+    return render_template("student/student_panel.html")
+
+ 
 #----------------------------------------------------------------------------------------------------------------------------#
-
-
-
-
-
-
-
-
-
-
 
 
 
 #-------------------------------------------admin-processes------------------------------------------------------------------#
 
 #---------------------------------------department-view,insert,delete,update---------------------------------------------------------------------#
-
+    
 #insert department
 @app.route("/insert_dept", methods=["POST","GET"])
 def insert_dept():
@@ -579,21 +606,64 @@ def class_schedule(classname):
     con = sqlite3.connect('spm_db.db')
     cur = con.cursor()
     try:
+        # Get staff and subject lists
         cur.execute("SELECT username FROM users_tb")
         staffs_names = [row[0] for row in cur.fetchall()]
             
         cur.execute('SELECT subjectname FROM subjects_tb')
         subjectnames = [row[0] for row in cur.fetchall()]
+
+        # Check if timetable exists for this class
+        cur.execute(f"""
+            SELECT name FROM sqlite_master 
+            WHERE type='table' AND name='{classname}_timetable_schedule_tb'
+        """)
+        table_exists = cur.fetchone()
+
+        timetable_data = {}
+        if table_exists:
+            # Fetch existing timetable data
+            cur.execute(f"""
+                SELECT day, period, subject, staff 
+                FROM {classname}_timetable_schedule_tb
+                ORDER BY 
+                    CASE day
+                        WHEN 'monday' THEN 1
+                        WHEN 'tuesday' THEN 2
+                        WHEN 'wednesday' THEN 3
+                        WHEN 'thursday' THEN 4
+                        WHEN 'friday' THEN 5
+                        WHEN 'saturday' THEN 6
+                        ELSE 7
+                    END,
+                    period
+            """)
             
-        return render_template("admin/class_schedule_form.html",staffs_names=staffs_names,subjectnames=subjectnames,classname = classname)
+            for row in cur.fetchall():
+                day = row[0]
+                period = row[1]
+                subject = row[2]
+                staff = row[3]
+                
+                if day not in timetable_data:
+                    timetable_data[day] = {}
+                timetable_data[day][period] = {
+                    'subject': subject,
+                    'staff': staff
+                }
+            
+        return render_template(
+            "admin/class_schedule_form.html",
+            staffs_names=staffs_names,
+            subjectnames=subjectnames,
+            classname=classname,
+            timetable_data=timetable_data
+        )
     except Exception as e:
         flash(f"Error loading form: {str(e)}", "danger")
         return redirect(url_for('view_class'))
     finally:
-        con.close()  
-            
-    
-
+        con.close()
 
 @app.route("/class_schedule_insert", methods=["POST", "GET"])
 def class_schedule_insert():
@@ -603,7 +673,7 @@ def class_schedule_insert():
     if request.method == "POST":
         try:
             classname = request.form.get('classname')
-            days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday']
+            days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday','saturday']
             for day in days:
                 for period in range(1, 9):
                     subject = request.form.get(f"{day}_p{period}_subject")
@@ -624,18 +694,75 @@ def class_schedule_insert():
         finally:
             con.close()
             return redirect(url_for('view_class'))
+
+
+#manage admin
+@app.route("/update_admin", methods=["GET", "POST"])
+def update_admin():
+    con = sqlite3.connect("spm_db.db")
+    cur = con.cursor()
+    
+    if request.method == "POST":
+        adminid = request.form.get("adminid")
+        adminname = request.form.get("adminname")
+        password = request.form.get("password")
+        
+        if not all([adminname, password]):
+            flash("All fields are required", "danger")
+            return redirect(url_for('update_admin'))
+            
+        try:
+            cur.execute("UPDATE admin_tb SET username = ?, password = ? WHERE userid = ?",
+                       (adminname, password, adminid))
+            con.commit()
+            flash("Admin details updated successfully", "success")
+        except sqlite3.Error as e:
+            con.rollback()
+            flash(f"Database error: {str(e)}", "danger")
+        finally:
+            con.close()
+        return redirect(url_for('update_admin'))
+    else:
+        cur.execute("SELECT * FROM admin_tb LIMIT 1")
+        admin = cur.fetchone()
+        con.close()
+        return render_template("admin/update_admin.html", admin=admin)   
+    
 #----------------------------------end-admin-processes-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------#
 
 
 
 
 
-
-
-
-
 #--------------------------------------staff-processes-------------------------------------------------------------------------------------------------#
+#view all attendance    
+@app.route('/view_all_attendance')
+def view_all_attendance():
+    if 'userid' not in session:
+        return redirect(url_for('login'))  
+    
+    user_id = str(session['userid']) 
+    conn = sqlite3.connect('spm_db.db')
+    conn.row_factory = sqlite3.Row  
+    cursor = conn.cursor()
+    
+    
+    cursor.execute("SELECT classname, classid, staffsid FROM classes_tb")
+    all_classes = cursor.fetchall()
+    
 
+    classes = []
+    for cls in all_classes:
+        staff_ids = [id.strip() for id in cls['staffsid'].split(',')]
+        if user_id in staff_ids:
+            classes.append(cls)
+    
+    cursor.close()
+    conn.close()
+    
+    return render_template('staff/view_attendance.html', classes=classes)
+
+#mark the daily attendance
 @app.route('/mark_attendance/<int:classid>/<string:classname>')
 def mark_attendance(classid, classname):
     if 'username' not in session or 'userid' not in session:
@@ -710,6 +837,9 @@ def mark_attendance(classid, classname):
                          classid=classid,
                          classname=classname)
 
+
+
+#submit attendance
 @app.route('/submit_attendance', methods=['POST'])
 def submit_attendance():
     if 'username' not in session:
@@ -803,34 +933,204 @@ def submit_attendance():
     return redirect(url_for('mark_attendance', 
                          classid=classid, 
                          classname=classname))
-    
-@app.route('/view_all_attendance')
-def view_all_attendance():
-    if 'userid' not in session:
-        return redirect(url_for('login'))  
-    
-    user_id = str(session['userid']) 
-    conn = sqlite3.connect('spm_db.db')
-    conn.row_factory = sqlite3.Row  
-    cursor = conn.cursor()
-    
-    
-    cursor.execute("SELECT classname, classid, staffsid FROM classes_tb")
-    all_classes = cursor.fetchall()
-    
 
-    classes = []
-    for cls in all_classes:
-        staff_ids = [id.strip() for id in cls['staffsid'].split(',')]
-        if user_id in staff_ids:
-            classes.append(cls)
+
+
+
+
+
+
+
+
+#report generation process
+
+@app.route("/generate_report", methods=["POST", "GET"])
+def generate_report():
+    con = sqlite3.connect('spm_db.db')
+    con.row_factory = sqlite3.Row
+    cur = con.cursor()
     
-    cursor.close()
-    conn.close()
-    
-    return render_template('staff/view_attendance.html', classes=classes)
+    if request.method == "POST":
+        classname = request.form.get('classname')
+        startdate = request.form.get('startdate')
+        enddate = request.form.get('enddate')
+        
+        if not all([classname, startdate, enddate]):
+            flash("All values are required", "danger")
+            return redirect(url_for('generate_report'))
+            
+        try:
+            # Get class ID
+            cur.execute("SELECT classid FROM classes_tb WHERE classname = ?", (classname,))
+            class_row = cur.fetchone()
+            if not class_row:
+                flash("Class not found", "danger")
+                return redirect(url_for('generate_report'))
+            
+            classid = class_row['classid']
+            
+            # Get actual attendance dates between start and end date
+            cur.execute(f"""
+                SELECT DISTINCT date 
+                FROM {classname}
+                WHERE date BETWEEN ? AND ?
+                ORDER BY date
+            """, (startdate, enddate))
+            
+            attendance_dates = [row['date'] for row in cur.fetchall()]
+            total_days = len(attendance_dates)
+            total_possible_hours = total_days * 8
+            
+            # Get student attendance data
+            query = f"""
+                SELECT s.rollno, s.name, 
+                       COALESCE(SUM(a.present), 0) as total_present,
+                       COALESCE(SUM(a.absent), 0) as total_absent
+                FROM students_tb s
+                LEFT JOIN {classname} a ON s.rollno = a.rollno AND a.date BETWEEN ? AND ?
+                WHERE s.classid = ?
+                GROUP BY s.rollno, s.name
+                ORDER BY s.rollno
+            """
+            cur.execute(query, (startdate, enddate, classid))
+            
+            students = []
+            for row in cur.fetchall():
+                total_present = row['total_present']
+                percentage = (total_present / total_possible_hours) * 100 if total_possible_hours > 0 else 0
+                
+                students.append({
+                    'rollno': row['rollno'],
+                    'name': row['name'],
+                    'present': total_present,
+                    'absent': row['total_absent'],
+                    'percentage': round(percentage, 2)
+                })
+            
+            report_data = {
+                'classname': classname,
+                'start_date': startdate,
+                'end_date': enddate,
+                'students': students,
+                'report_date': datetime.datetime.now().strftime('%Y-%m-%d'),
+                'total_days': total_days,
+                'total_hours': total_possible_hours,
+                'attendance_dates': attendance_dates  # Optional: include in report if needed
+            }
+            
+            return render_template("admin/report.html", report=report_data)
+            
+        except Exception as e:
+            flash(f"Error generating report: {str(e)}", "danger")
+            app.logger.error(f"Report error: {str(e)}", exc_info=True)
+            return redirect(url_for('generate_report'))
+        finally:
+            con.close()
+    else:
+        # GET request - show form (same as before)
+        
+        try:
+            # Get departments and class list
+            cur.execute('SELECT DISTINCT deptname FROM dept_tb')
+            departments = [row[0] for row in cur.fetchall()]
+       
+            cur.execute('SELECT DISTINCT classname FROM classes_tb')
+            class_list = [row[0] for row in cur.fetchall()]
+
+            # Get date range for each class
+            class_date_ranges = {}
+            for classname in class_list:
+                try:
+                    # Get min and max dates from attendance table
+                    cur.execute(f"""
+                        SELECT MIN(date) as min_date, MAX(date) as max_date 
+                        FROM {classname}
+                    """)
+                    date_range = cur.fetchone()
+                    if date_range and date_range['min_date'] and date_range['max_date']:
+                        class_date_ranges[classname] = {
+                            'min_date': date_range['min_date'],
+                            'max_date': date_range['max_date']
+                        }
+                except sqlite3.Error as e:
+                    # Table might not exist yet
+                    continue
+            
+            return render_template("admin/generate_report_form.html", 
+                                departments=departments,
+                                class_list=class_list,
+                                date_ranges=class_date_ranges)
+        except Exception as e:
+            flash(f"Error loading form: {str(e)}", "danger")
+            return redirect(url_for('generate_report'))
+        finally:
+            con.close()
+
+
         
 #---------------------------------------end-staff-processes-----------------------------------------------------------------------------------------------------#
 
+
+
+#-----------------------------------student-process----------------------------------------------------------------------------------#
+
+#student search attendance percentage
+@app.route('/generate_report_student', methods=['GET', 'POST'])
+def generate_report_student():
+    con = sqlite3.connect('spm_db.db')
+    cur = con.cursor()
+    
+    if request.method == 'POST':
+        rollno = request.form.get("rollno")
+        if not rollno:
+            flash("Enter your rollno", "danger")
+            return render_template('student/generate_report_form.html')
+        
+        try:
+            # Get student's classname
+            cur.execute("SELECT classname FROM students_tb WHERE rollno=?", (rollno,))
+            class_info = cur.fetchone()
+            
+            if not class_info:
+                flash("Roll number not found", "danger")
+                return render_template('student/generate_report_form.html')
+            
+            classname = class_info[0]
+            
+            # Get total possible hours (days * 8)
+            cur.execute(f"SELECT COUNT(DISTINCT date) FROM {classname}")
+            total_days = cur.fetchone()[0]
+            total_hours = total_days * 8
+            
+            # Get student's present hours
+            cur.execute(f"SELECT present FROM {classname} WHERE rollno = ?", (rollno,))
+            present_hours = cur.fetchall()
+            total_present = 0
+            for i in present_hours:
+                total_present += i[0]
+            
+            # Calculate percentage
+            percentage = (total_present / total_hours) * 100 if total_hours > 0 else 0
+            
+            # Format the percentage to 2 decimal places
+            formatted_percentage = f"{percentage:.2f}%"
+            
+            return render_template('student/generate_report_form.html',
+                                rollno=rollno,
+                                percentage=formatted_percentage,
+                                present_hours=total_present,
+                                total_hours=total_hours)
+            
+        except sqlite3.Error as e:
+            flash(f"Database error: {str(e)}", "danger")
+            return render_template('student/generate_report_form.html')
+        finally:
+            con.close()
+    else:
+        return render_template('student/generate_report_form.html')
+    
+
+
+#-----------------------------------end-student-process----------------------------------------------------------------------------------#
 if __name__ == '__main__':
     app.run(debug=True)

@@ -20,7 +20,7 @@
     <nav class="navbar">
         <a href="#" class="navbar-brand">Staff Panel</a>
         <div class="nav-menu">
-            <a href="#" class="nav-item active">Home</a>
+            <a href="{{url_for('staff_dashboard')}}" class="nav-item active">Home</a>
 
             <div class="dropdown">
                 <a href="#" class="nav-item dropdown-toggle">Manage Attendance</a>
@@ -31,7 +31,7 @@
             </div>
             
             <a href="report_generate_form.html" class="nav-item">Manage Reports</a>
-            <a href="{{url_for('login')}}" class="nav-item" id="logout-link">
+            <a href="{{url_for('home')}}" class="nav-item" id="logout-link">
                 <span>Logout</span>
                 <i class="fas fa-sign-out-alt"></i>
             </a>

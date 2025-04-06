@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Report Generate form</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="static/css/style.css">
+</head>
+<body>
+    {% with msg=get_flashed_messages() %}
+    {% if msg %}
+    <script>
+        alert("{{msg[0]}}");
+    </script>
+    {% endif %}
+    {% endwith %}
+    <nav class="navbar">
+        <a href="#" class="navbar-brand">Student Panel</a>
+        <div class="nav-menu">
+            <a href="{{url_for('student_dashboard')}}" class="nav-item active">Home</a>
+
+            
+            <a href="{{url_for('generate_report_student')}}" class="nav-item">Manage Reports</a>
+            <a href="{{url_for('home')}}" class="nav-item" id="logout-link">
+                <span>Logout</span>
+                <i class="fas fa-sign-out-alt"></i>
+            </a>
+        </div>
+    </nav>
+
+
+    <div class="main-content">
+        <div class="form-container">
+            <div class="label">SEARCH YOUR ATTENDANCE PERCENTAGE</div>
+            
+            <form method="POST" action="/generate_report_student">
+                <div class="input-group">
+                    <label for="rollno"> ENTER YOUR ROLL NO :</label>
+                    <input type="number" name="rollno" value="{{ rollno if rollno }}" required>
+                </div>
+    
+                {% if percentage %}
+                <div class="percentage-display">
+                    <p>Your Attendance Percentage: <strong>{{ percentage }}</strong></p>
+                    <p>Present Hours: {{ present_hours }} out of {{ total_hours }}</p>
+                </div>
+                {% endif %}
+            
+                <div class="button-group">
+                    <button type="submit" class="submit-btn">SEARCH</button>
+                    <button type="reset" class="clear-btn">Clear</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <footer class="footer">
+        <p class="copyright">© 2025 computerstudents@mspvl All Rights Reserved.</p>
+    </footer>
+</body>
+</html>

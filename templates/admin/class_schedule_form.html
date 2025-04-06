@@ -673,21 +673,23 @@
                 </div>
             </div>
             
-            <a href="report_generate_form.html" class="nav-item">Manage Reports</a>
-            <a href="{{url_for('login')}}"class="nav-item" id="logout-link">
+            <a href="{{url_for('update_admin')}}" class="nav-item">Update Admin</a>
+          
+            
+            <a href="{{url_for('generate_report')}}" class="nav-item">Manage Reports</a>
+            <a href="{{url_for('home')}}"class="nav-item" id="logout-link">
                 <span>Logout</span>
                 <i class="fas fa-sign-out-alt"></i>
             </a>
         </div>
     </nav>
 
-
     
     <div class="main-content">
         <form id="classScheduleForm" method="POST" action="/class_schedule_insert">
             <div class="table-container">
-                <h2>Class Schedule Form</h2>
-                <input type="text" value= "{{ classname }}" name="classname" hidden>
+                <h2>Time Table Schedule Form</h2>
+                <input type="text" value="{{ classname }}" name="classname" hidden>
                 <table>
                     <thead>
                         <tr>
@@ -711,28 +713,37 @@
                         </tr>
                     </thead>
                     <tbody>
-                        {% for day in ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'] %}
+                        {% for day in ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'] %}
                         <tr>
                             <td>
                                 <input type="text" class="day-input" value="{{ day }}" readonly>
-                                <input type="hidden" name="{{ day|lower }}_day" value="{{ day|lower }}">
                             </td>
                             {% for period in range(1, 9) %}
                             <td>
                                 <select class="select-box subject-select" 
                                         name="{{ day|lower }}_p{{ period }}_subject" required>
-                                    
+                                    <option value="">Select Subject</option>
                                     {% for subject in subjectnames %}
-                                        <option value="{{ subject }}">{{ subject }}</option>
+                                        <option value="{{ subject }}"
+                                            {% if timetable_data and day in timetable_data and period in timetable_data[day] and timetable_data[day][period]['subject'] == subject %}
+                                                selected
+                                            {% endif %}>
+                                            {{ subject }}
+                                        </option>
                                     {% endfor %}
                                 </select>
                             </td>
                             <td>
                                 <select class="select-box staff-select" 
                                         name="{{ day|lower }}_p{{ period }}_staff" required>
-                                   
+                                    <option value="">Select Staff</option>
                                     {% for staff in staffs_names %}
-                                        <option value="{{ staff }}">{{ staff }}</option>
+                                        <option value="{{ staff }}"
+                                            {% if timetable_data and day in timetable_data and period in timetable_data[day] and timetable_data[day][period]['staff'] == staff %}
+                                                selected
+                                            {% endif %}>
+                                            {{ staff }}
+                                        </option>
                                     {% endfor %}
                                 </select>
                             </td>

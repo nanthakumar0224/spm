@@ -657,20 +657,47 @@
     {% endwith %}
 
     <nav class="navbar">
-        <a href="#" class="navbar-brand">Staff Panel</a>
+        <a href="#" class="navbar-brand">Admin Panel</a>
         <div class="nav-menu">
-            <a href="#" class="nav-item active">Home</a>
+            <a href="{{url_for('admin_dashboard')}}" class="nav-item active">Home</a>
+
+            <div class="dropdown">
+                <a href="#" class="nav-item dropdown-toggle">Manage Dept</a>
+                <div class="dropdown-content">
+                    <a href="{{url_for('insert_dept')}}" class="dropdown-item">Add Dept</a>
+                    <a href="{{url_for('view_dept')}}" class="dropdown-item">View Dept</a>
+                </div>
+            </div>
+            
+            <div class="dropdown">
+                <a href="#" class="nav-item dropdown-toggle">Manage Staff</a>
+                <div class="dropdown-content">
+                    <a href="{{url_for('insert_staff')}}" class="dropdown-item">Add Staff</a>
+                    <a href="{{url_for('view_staff')}}" class="dropdown-item">View Staff</a>
+                </div>
+            </div>
+            
+            <div class="dropdown">
+                <a href="#" class="nav-item dropdown-toggle">Manage Subjects</a>
+                <div class="dropdown-content">
+                    <a href="{{url_for('insert_sub')}}" class="dropdown-item">Add Subject</a>
+                    <a href="{{url_for('view_subject')}}" class="dropdown-item">View Subjects</a>
+                </div>
+            </div>
             
             <div class="dropdown">
                 <a href="#" class="nav-item dropdown-toggle">Manage Attendance</a>
                 <div class="dropdown-content">
-                    
-                    <a href="{{url_for('view_all_attendance')}}" class="dropdown-item">View Attendance</a>
+                    <a href="{{url_for('insert_class')}}" class="dropdown-item">Add Attendance</a>
+                    <a href="{{url_for('view_class')}}" class="dropdown-item">View Attendance</a>
                 </div>
             </div>
             
-            <a href="report_generate_form.html" class="nav-item">Manage Reports</a>
-            <a href="{{url_for('login')}}" class="nav-item" id="logout-link">
+            <a href="{{url_for('update_admin')}}" class="nav-item">Update Admin</a>
+          
+            
+            <a href="{{url_for('generate_report')}}" class="nav-item">Manage Reports</a>
+            <a href="{{url_for('home')}}"class="nav-item" id="logout-link">
                 <span>Logout</span>
                 <i class="fas fa-sign-out-alt"></i>
             </a>
