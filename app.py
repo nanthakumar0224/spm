@@ -475,7 +475,6 @@ def insert_class():
     
             create_table_time_schedule = f"""
             CREATE TABLE IF NOT EXISTS {classname}_timetable_schedule_tb (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
                 day TEXT NOT NULL,
                 period INTEGER NOT NULL,
                 subject TEXT NOT NULL,
