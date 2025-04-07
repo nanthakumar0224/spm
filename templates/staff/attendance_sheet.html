@@ -669,7 +669,7 @@
                 </div>
             </div>
             
-            <a href="report_generate_form.html" class="nav-item">Manage Reports</a>
+      
             <a href="{{url_for('home')}}" class="nav-item" id="logout-link">
                 <span>Logout</span>
                 <i class="fas fa-sign-out-alt"></i>
@@ -717,7 +717,7 @@
                                    {% endif %}
                                    {% if period_num not in current_staff_periods %}
                                        disabled
-                                   {% endif %}>
+                                   {% endif %}>    
                         </td>
                         {% endfor %}
                         

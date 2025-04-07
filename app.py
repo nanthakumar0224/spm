@@ -456,6 +456,15 @@ def insert_class():
             return redirect(url_for('insert_class'))
             
         try:
+            df = pd.read_excel(file)
+            df = df[['rollno','name','email']] 
+            df['dept'] = dept
+            df['year'] = year
+            df['classid'] = classid
+            df['classname'] = classname
+    
+            df.to_sql("students_tb", con, if_exists='append', index=False)
+            
             cur.execute("""
                 INSERT INTO classes_tb (classid, classname, dept, year, sem, staffsid) 
                 VALUES (?, ?, ?, ?, ?, ?)
@@ -476,14 +485,7 @@ def insert_class():
             
             cur.execute(create_table_time_schedule)
             con.commit()
-            df = pd.read_excel(file)
-            df = df[['rollno','name','email']] 
-            df['dept'] = dept
-            df['year'] = year
-            df['classid'] = classid
-            df['classname'] = classname
-    
-            df.to_sql("students_tb", con, if_exists='append', index=False)
+            
             con.commit()
             
             flash("Class Added Successfully!", "success")
@@ -773,8 +775,7 @@ def mark_attendance(classid, classname):
     
     # Get today's date and day
     today_date = datetime.datetime.now().strftime('%Y-%m-%d')
-    #today_day = datetime.datetime.now().strftime("%A").lower()
-    today_day = "monday"
+    today_day = datetime.datetime.now().strftime("%A").lower()
     current_staff_username = session['username']
     
     # Get students
