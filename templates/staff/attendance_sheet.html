@@ -713,7 +713,8 @@
                                    class="period-checkbox"
                                    data-period="{{ period_num }}"
                                    {% if existing_attendance and student['rollno'] in existing_attendance %}
-                                       {{ 'checked' if existing_attendance[student['rollno']]['p' ~ period_num] == 1 else '' }}
+                                       {% set period_key = 'p' + period_num|string %}
+                                       {{ 'checked' if existing_attendance[student['rollno']][period_key] == 1 else '' }}
                                    {% endif %}
                                    {% if period_num not in current_staff_periods %}
                                        disabled
