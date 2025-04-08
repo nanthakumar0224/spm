@@ -772,18 +772,18 @@ def mark_attendance(classid, classname):
     conn = sqlite3.connect("spm_db.db")
     conn.row_factory = sqlite3.Row
     
-    # Get today's date and day
+   
     today_date = datetime.datetime.now().strftime('%Y-%m-%d')
     today_day = datetime.datetime.now().strftime("%A").lower()
     current_staff_username = session['username']
     
-    # Get students
+    
     students = conn.execute(
         "SELECT rollno, name FROM students_tb WHERE classid = ?", 
         (classid,)
     ).fetchall()
     
-    # Get all periods for today with staff info
+
     all_periods = conn.execute(
         f"SELECT period, subject, staff FROM {classname}_timetable_schedule_tb WHERE day = ?",
         (today_day,)
@@ -853,7 +853,7 @@ def submit_attendance():
         classname = request.form['classname']
         today_date = datetime.datetime.now().strftime('%Y-%m-%d')
         today_day = datetime.datetime.now().strftime("%A").lower()
-        today_day = "monday"
+   
         current_staff_username = session['username']
         
         # Get staff's periods for today
@@ -960,7 +960,7 @@ def generate_report():
             return redirect(url_for('generate_report'))
             
         try:
-            # Get class ID
+           
             cur.execute("SELECT classid FROM classes_tb WHERE classname = ?", (classname,))
             class_row = cur.fetchone()
             if not class_row:
@@ -969,7 +969,7 @@ def generate_report():
             
             classid = class_row['classid']
             
-            # Get actual attendance dates between start and end date
+
             cur.execute(f"""
                 SELECT DISTINCT date 
                 FROM {classname}
@@ -981,7 +981,7 @@ def generate_report():
             total_days = len(attendance_dates)
             total_possible_hours = total_days * 8
             
-            # Get student attendance data
+           
             query = f"""
                 SELECT s.rollno, s.name, 
                        COALESCE(SUM(a.present), 0) as total_present,
@@ -1015,7 +1015,7 @@ def generate_report():
                 'report_date': datetime.datetime.now().strftime('%Y-%m-%d'),
                 'total_days': total_days,
                 'total_hours': total_possible_hours,
-                'attendance_dates': attendance_dates  # Optional: include in report if needed
+                'attendance_dates': attendance_dates  
             }
             
             return render_template("admin/report.html", report=report_data)
@@ -1027,21 +1027,21 @@ def generate_report():
         finally:
             con.close()
     else:
-        # GET request - show form (same as before)
+       
         
         try:
-            # Get departments and class list
+            
             cur.execute('SELECT DISTINCT deptname FROM dept_tb')
             departments = [row[0] for row in cur.fetchall()]
        
             cur.execute('SELECT DISTINCT classname FROM classes_tb')
             class_list = [row[0] for row in cur.fetchall()]
 
-            # Get date range for each class
+        
             class_date_ranges = {}
             for classname in class_list:
                 try:
-                    # Get min and max dates from attendance table
+                    
                     cur.execute(f"""
                         SELECT MIN(date) as min_date, MAX(date) as max_date 
                         FROM {classname}
@@ -1053,7 +1053,6 @@ def generate_report():
                             'max_date': date_range['max_date']
                         }
                 except sqlite3.Error as e:
-                    # Table might not exist yet
                     continue
             
             return render_template("admin/generate_report_form.html", 
@@ -1087,7 +1086,7 @@ def generate_report_student():
             return render_template('student/generate_report_form.html')
         
         try:
-            # Get student's classname
+            
             cur.execute("SELECT classname FROM students_tb WHERE rollno=?", (rollno,))
             class_info = cur.fetchone()
             
@@ -1097,22 +1096,22 @@ def generate_report_student():
             
             classname = class_info[0]
             
-            # Get total possible hours (days * 8)
+           
             cur.execute(f"SELECT COUNT(DISTINCT date) FROM {classname}")
             total_days = cur.fetchone()[0]
             total_hours = total_days * 8
             
-            # Get student's present hours
+           
             cur.execute(f"SELECT present FROM {classname} WHERE rollno = ?", (rollno,))
             present_hours = cur.fetchall()
             total_present = 0
             for i in present_hours:
                 total_present += i[0]
             
-            # Calculate percentage
+       
             percentage = (total_present / total_hours) * 100 if total_hours > 0 else 0
             
-            # Format the percentage to 2 decimal places
+       
             formatted_percentage = f"{percentage:.2f}%"
             
             return render_template('student/generate_report_form.html',
